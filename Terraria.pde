@@ -6,7 +6,7 @@
 // [rows][cols]
 int[][] arrWorld = new int[401][800];
 
-setup = function()
+void setup()
 {
 	size(window.innerWidth, window.innerHeight);
 	console.clear();
@@ -20,21 +20,7 @@ setup = function()
 	GenerateWorld();
 };
 
-LogArray = function(toPrint)
-{
-	string currentLine;
-	for(int i = 0; i < toPrint.length; i++)
-	{
-		currentLine = "";
-		for(int j = 0; j < toPrint[0].length; j++)
-		{
-			currentLine += toPrint[i][j];
-		}
-		console.log(currentLine);
-	}
-}
-
-CountInArray = function(toRead, toFind)
+int CountInArray(int[][] toRead, int toFind)
 {
 	int count = 0;
 	for(int i = 0; i < toRead.length; i++)
@@ -50,7 +36,42 @@ CountInArray = function(toRead, toFind)
 	return count;
 }
 
-DumpPixelArray = function(toDraw)
+int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius, int drawWith, int randomness)
+{
+	int numToDraw;
+	int numToRand;
+	int yCenterTemp;
+	int randTmp;
+	for(int i = 0 - radius; i < radius; i++)
+	{
+		numToDraw = i + ( i - 1 );
+		numToRand = numToDraw + ( 2 * RandInt(0 - randomness, randomness) );
+		xCenterTemp = xCenter + RandInt(0 - randomness, randomness);
+		for(int j = 0; j < numToRand; j++)
+		{
+			if( ( ( yCenter + i - radius ) >= 0 ) && ( ( yCenter + i - radius ) < arrayToEdit.length ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) >= 0 ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) < arrayToEdit[0].length ) )
+			{
+				arrayToEdit[yCenter + i - radius][xCenterTemp + j - int(numToRand / 2 )] = drawWith;
+			}
+		}
+		numToRand = numToDraw + ( 2 * RandInt(0 - randomness, randomness) );
+		for(int j = 0; j < numToRand; j++)
+		{
+			if( ( ( yCenter - i + radius ) >= 0 ) && ( ( yCenter - i + radius ) < arrayToEdit.length ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) >=0 ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) < arrayToEdit[0].length ) )
+			{
+				arrayToEdit[yCenter - i + radius][xCenterTemp + j - int(numToRand / 2 )] = drawWith;
+			}
+		}
+	}
+
+	for(int i = 0; i < 2 * radius - 1; i++)
+	{
+		arrayToEdit[yCenter][xCenter + i - radius + 1] = drawWith;
+	}
+	return arrayToEdit;
+}
+
+void DumpPixelArray(toDraw)
 {
 	noSmooth();
 	for(int i = 0; i < toDraw.length; i++)
@@ -59,7 +80,7 @@ DumpPixelArray = function(toDraw)
 		{
 			if( toDraw[i][j] == 0 )
 			{
-				stroke(179, 240, 255);
+				stroke(204, 255, 255);
 			}
 			else if( toDraw[i][j] == 1 )
 			{
@@ -85,24 +106,44 @@ DumpPixelArray = function(toDraw)
 			{
 				stroke(38, 38, 38);
 			}
+			else if( toDraw[i][j] == 56 )
+			{
+				stroke(0, 204, 255);
+			}
+			else if( toDraw[i][j] == 14 )
+			{
+				stroke(255, 255, 102);
+			}
+			else if( toDraw[i][j] == 11 )
+			{
+				stroke(255, 102, 0);
+			}
 			point(300 + j, 80 + i);
 		}
 	}
 }
 
-GenerateWorld = function()
+void LogArray(toDraw)
+{
+	String row = "";
+	for(int i = 0; i < toDraw.length; i++)
+	{
+		row = "";
+		for(int j = 0; j < toDraw[0].length; j++)
+		{
+			row += toDraw[i][j];
+		}
+		console.log(row);
+	}
+}
+
+void GenerateWorld()
 {
 	// Add Base World
 	// Row  0         =  Bedrock:   7
 	// Rows 10 - 49   =  Stone:     1
 	// Rows 9 - 6     =  Dirt:      3
 	// Rows 5         =  Grass:     2
-
-	// Bedrock
-	for(int i = 0; i < arrWorld[0].length; i++)
-	{
-		arrWorld[400][i] = 7;
-	};
 
 	// Stone
 	for(int i = 200; i <= 399; i++)
@@ -122,36 +163,102 @@ GenerateWorld = function()
 		};
 	};
 
-	// Grass
-	for(int i = 0; i < arrWorld[0].length; i++)
-	{
-		arrWorld[189][i] = 2;
-	};
-
-	// Add Coal
+	// Add Surface Randomness
 	for(int i = 0; i <= arrWorld[0].length; i++)
 	{
-		arrWorld[RandInt(200,399)][RandInt(1,arrWorld[0].length)] = 16;
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(189,191), RandInt(1,8), 3, 0);
+	}
+
+	for(int i = 0; i < arrWorld[0].length; i++)
+	{
+		for(int j = 0; j < arrWorld.length; j++)
+		{
+			if(arrWorld[j][i] == 3)
+			{
+				arrWorld[j][i + RandInt(0, 1)] = 2;
+				break
+			}
+		}
+	}
+
+	// Add Sub-Surface Randomness
+	for(int i = 0; i <= arrWorld[0].length; i++)
+	{
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(201,199), RandInt(1,6), 1, 2);
+	}
+
+	// Add Coal
+	for(int i = 0; i <= arrWorld[0].length / 4; i++)
+	{
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(200,399), 3, 16, 2);
 	}
 
 	// Add Iron
-	for(int i = 0; i <= arrWorld[0].length; i++)
+	for(int i = 0; i <= arrWorld[0].length / 4; i++)
 	{
-		arrWorld[RandInt(200,399)][RandInt(1,arrWorld[0].length)] = 15;
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(200,399), 3, 15, 2);
 	}
+
+	// Add Diamonds
+	for(int i = 0; i <= .25 * arrWorld[0].length / 4; i++)
+	{
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(350,400), 2, 56, 2);
+	}
+
+	// Add Gold
+	for(int i = 0; i <= .3 * arrWorld[0].length / 4; i++)
+	{
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(350,400), 2, 14, 2);
+	}
+
+	// This needs some serious work.
+	/*
+
+	// Add Lava
+	int lavaX;
+	int lavaY;
+	for(int i = 0; i <= .1 * arrWorld[0].length; i++)
+	{
+		lavaX = RandInt(320,399);
+		lavaY = RandInt(2,arrWorld[0].length);
+		arrWorld[lavaX][lavaY] = 11;
+		arrWorld[lavaX+1][lavaY] = 11;
+		arrWorld[lavaX-1][lavaY] = 0;
+		arrWorld[lavaX-1][lavaY-2] = 0;
+		arrWorld[lavaX-1][lavaY+2] = 0;
+
+
+		arrWorld[lavaX][lavaY-1] = 11;
+		//arrWorld[lavaX+1][lavaY-1] = 11;
+		arrWorld[lavaX-1][lavaY-1] = 0;
+
+		arrWorld[lavaX][lavaY+1] = 11;
+		//arrWorld[lavaX+1][lavaY+1] = 11;
+		arrWorld[lavaX-1][lavaY+1] = 0;
+	}
+
+	*/
+
+
+	// Bedrock
+	for(int i = 0; i < arrWorld[0].length; i++)
+	{
+		arrWorld[400][i] = 7;
+	};
 
 	console.log("Iron: " + CountInArray(arrWorld, 15));
 	console.log("Coal: " + CountInArray(arrWorld, 16));
+	console.log("Diamonds: " + CountInArray(arrWorld, 56));
 	DumpPixelArray(arrWorld);
 	console.log(arrWorld);
 };
 
-RandInt = function(min, max)
+int RandInt(int min, int max)
 {
 	return int(random(min,max));
 }
 
-IntroMessages = function()
+void IntroMessages()
 {
 	stroke(#000000);
 	fill(#000000);
@@ -161,7 +268,7 @@ IntroMessages = function()
 	DrawTestImage();
 };
 
-draw = function()
+void draw()
 {
 	PaintScreen();
 
@@ -182,7 +289,7 @@ draw = function()
 	};
 };
 
-DrawTestImage = function()
+void DrawTestImage()
 {
 	fill(233, 224, 71);
 	strokeWeight(7/2);
@@ -197,14 +304,13 @@ DrawTestImage = function()
 	line(340/2, 180/2, 290/2, 135/2);
 }
 
-PaintScreen = function()
+void PaintScreen()
 {
 
 
 }
 
-
-DrawSquare = function(int x, int y, int size, color c )
+void DrawSquare(int x, int y, int size, color c )
 {
 	fill(c);
 	noStroke();
