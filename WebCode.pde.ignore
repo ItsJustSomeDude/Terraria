@@ -1,0 +1,14 @@
+// This file gets loaded in the JS version, but not the PC version.
+// This is handled by the canvas tag in index.html.
+
+void SetWebScreenSize()
+{
+	println("Setting up Screen for Web.");
+	size(window.innerWidth, window.innerHeight);
+};
+
+void WebSetup()
+{
+	println("Setting up Sketch for web.");
+	textFont(loadFont("FFScala.ttf"));
+}

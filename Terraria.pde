@@ -1,23 +1,67 @@
 /*
-	@pjs crisp="true";
-		 pauseOnBlur="true";
+	@pjs
+		crisp="true";
+		pauseOnBlur="true";
+		preload="data/bedrock.png",
+				"data/air.png";
+
 */
 
 // [rows][cols]
 int[][] arrWorld = new int[401][800];
+PImage[] blockImages = new PImage[100];
+int mouseSelectedBlockX = 0;
+int mouseSelectedBlockY = 0;
+
+void settings()
+{
+	// This only runs on PC, Web ignores it.
+	size(800, 600);
+	noSmooth();
+}
 
 void setup()
 {
-	size(window.innerWidth, window.innerHeight);
-	console.clear();
+	SetWebScreenSize();
+	WebSetup();
 	background(#FFFFFF);
 	stroke(#000000);
 	fill(#000000);
-	textFont(loadFont("FFScala.ttf"));
-	console.log("I have landed!");
+	println("Program Start.");
+
+	blockImages[0] = loadImage("data/air.png");
+	blockImages[1] = loadImage("data/stone.png");
+	blockImages[2] = loadImage("data/grass.png");
+	blockImages[3] = loadImage("data/dirt.png");
+	blockImages[7] = loadImage("data/bedrock.png");
 
 	IntroMessages();
 	GenerateWorld();
+
+	//int[][] arrayTest = new int[100][100];
+
+	//DumpPixelArray(AddRoughCircle(arrayTest, 50, 50, 60, 1, 0));
+};
+
+void draw()
+{
+	mouseSelectedBlockX = mouseX - 299;
+	mouseSelectedBlockY = mouseY - 79;
+
+	print(mouseSelectedBlockX + ", ");
+	println(mouseSelectedBlockY);
+
+	
+
+	if(keyPressed)
+	{
+		if( key == '`' || key == '~' )
+		{
+			SetWebScreenSize();
+			IntroMessages();
+			DumpPixelArray(arrWorld);
+		};
+	};
 };
 
 int CountInArray(int[][] toRead, int toFind)
@@ -38,42 +82,52 @@ int CountInArray(int[][] toRead, int toFind)
 
 int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius, int drawWith, int randomness)
 {
-	int numToDraw;
-	int numToRand;
-	int yCenterTemp;
-	int randTmp;
-	for(int i = 0 - radius; i < radius; i++)
+	for (int j = 0; j <= radius; j++)
 	{
-		numToDraw = i + ( i - 1 );
-		numToRand = numToDraw + ( 2 * RandInt(0 - randomness, randomness) );
-		xCenterTemp = xCenter + RandInt(0 - randomness, randomness);
-		for(int j = 0; j < numToRand; j++)
+		int intCurrentY = yCenter - radius - j;
+		int Temp = int(sqrt(radius * radius - j * j));
+
+		//int intLowerX = xCenter - Temp;
+		//int intUpperX = xCenter + Temp;
+
+		int intLowerX = xCenter - RandInt(Temp - randomness, Temp + randomness);
+		int intUpperX = xCenter + RandInt(Temp - randomness, Temp + randomness);
+
+		for (int k = intLowerX; k <= intUpperX; k++)
 		{
-			if( ( ( yCenter + i - radius ) >= 0 ) && ( ( yCenter + i - radius ) < arrayToEdit.length ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) >= 0 ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) < arrayToEdit[0].length ) )
+			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit[0].length - 1) && (k >= 0) && (k <= arrayToEdit[0].length - 1))
 			{
-				arrayToEdit[yCenter + i - radius][xCenterTemp + j - int(numToRand / 2 )] = drawWith;
-			}
-		}
-		numToRand = numToDraw + ( 2 * RandInt(0 - randomness, randomness) );
-		for(int j = 0; j < numToRand; j++)
-		{
-			if( ( ( yCenter - i + radius ) >= 0 ) && ( ( yCenter - i + radius ) < arrayToEdit.length ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) >=0 ) && ( ( xCenterTemp + j - int(numToRand / 2 ) ) < arrayToEdit[0].length ) )
-			{
-				arrayToEdit[yCenter - i + radius][xCenterTemp + j - int(numToRand / 2 )] = drawWith;
+				arrayToEdit[intCurrentY][k] = drawWith;
 			}
 		}
 	}
 
-	for(int i = 0; i < 2 * radius - 1; i++)
+	for (int j = 0; j <= radius; j++)
 	{
-		arrayToEdit[yCenter][xCenter + i - radius + 1] = drawWith;
+		int intCurrentY = yCenter - radius + j;
+		int Temp = int(sqrt(radius * radius - j * j));
+
+		//int intLowerX = xCenter - Temp;
+		//int intUpperX = xCenter + Temp;
+
+		int intLowerX = xCenter - RandInt(Temp - randomness, Temp + randomness);
+		int intUpperX = xCenter + RandInt(Temp - randomness, Temp + randomness);
+
+		for (int k = intLowerX; k <= intUpperX; k++)
+		{
+			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit.length - 1) && (k >= 0) && (k <= arrayToEdit[0].length - 1))
+			{
+				arrayToEdit[intCurrentY][k] = drawWith;
+			}
+		}
 	}
 	return arrayToEdit;
 }
 
-void DumpPixelArray(toDraw)
+void DumpPixelArray(int[][] toDraw)
 {
 	noSmooth();
+	noStroke();
 	for(int i = 0; i < toDraw.length; i++)
 	{
 		for(int j = 0; j < toDraw[0].length; j++)
@@ -123,7 +177,7 @@ void DumpPixelArray(toDraw)
 	}
 }
 
-void LogArray(toDraw)
+void LogArray(int[][] toDraw)
 {
 	String row = "";
 	for(int i = 0; i < toDraw.length; i++)
@@ -133,7 +187,7 @@ void LogArray(toDraw)
 		{
 			row += toDraw[i][j];
 		}
-		console.log(row);
+		println(row);
 	}
 }
 
@@ -166,9 +220,10 @@ void GenerateWorld()
 	// Add Surface Randomness
 	for(int i = 0; i <= arrWorld[0].length; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(189,191), RandInt(1,8), 3, 0);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(195,200), RandInt(2,8), 3, 0);
 	}
 
+	// Add Grass
 	for(int i = 0; i < arrWorld[0].length; i++)
 	{
 		for(int j = 0; j < arrWorld.length; j++)
@@ -176,15 +231,22 @@ void GenerateWorld()
 			if(arrWorld[j][i] == 3)
 			{
 				arrWorld[j][i + RandInt(0, 1)] = 2;
-				break
+				break;
 			}
 		}
 	}
 
+	/*
+	for(int i = 0; i < arrWorld[0].length; i++)
+	{
+
+	};
+	*/
+
 	// Add Sub-Surface Randomness
 	for(int i = 0; i <= arrWorld[0].length; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(201,199), RandInt(1,6), 1, 2);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(204,201), RandInt(1,6), 1, 2);
 	}
 
 	// Add Coal
@@ -211,46 +273,16 @@ void GenerateWorld()
 		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(350,400), 2, 14, 2);
 	}
 
-	// This needs some serious work.
-	/*
-
-	// Add Lava
-	int lavaX;
-	int lavaY;
-	for(int i = 0; i <= .1 * arrWorld[0].length; i++)
-	{
-		lavaX = RandInt(320,399);
-		lavaY = RandInt(2,arrWorld[0].length);
-		arrWorld[lavaX][lavaY] = 11;
-		arrWorld[lavaX+1][lavaY] = 11;
-		arrWorld[lavaX-1][lavaY] = 0;
-		arrWorld[lavaX-1][lavaY-2] = 0;
-		arrWorld[lavaX-1][lavaY+2] = 0;
-
-
-		arrWorld[lavaX][lavaY-1] = 11;
-		//arrWorld[lavaX+1][lavaY-1] = 11;
-		arrWorld[lavaX-1][lavaY-1] = 0;
-
-		arrWorld[lavaX][lavaY+1] = 11;
-		//arrWorld[lavaX+1][lavaY+1] = 11;
-		arrWorld[lavaX-1][lavaY+1] = 0;
-	}
-
-	*/
-
-
 	// Bedrock
 	for(int i = 0; i < arrWorld[0].length; i++)
 	{
 		arrWorld[400][i] = 7;
 	};
 
-	console.log("Iron: " + CountInArray(arrWorld, 15));
-	console.log("Coal: " + CountInArray(arrWorld, 16));
-	console.log("Diamonds: " + CountInArray(arrWorld, 56));
+	println("Iron: " + CountInArray(arrWorld, 15));
+	println("Coal: " + CountInArray(arrWorld, 16));
+	println("Diamonds: " + CountInArray(arrWorld, 56));
 	DumpPixelArray(arrWorld);
-	console.log(arrWorld);
 };
 
 int RandInt(int min, int max)
@@ -268,27 +300,6 @@ void IntroMessages()
 	DrawTestImage();
 };
 
-void draw()
-{
-	PaintScreen();
-
-	if(keyPressed)
-	{
-		if( key == '`' || key == '~' )
-		{
-			console.log("Changing Size");
-			size(window.innerWidth, window.innerHeight);
-			IntroMessages();
-			DumpPixelArray(arrWorld);
-		};
-
-		if( key == '' || key == '' )
-		{
-
-		};
-	};
-};
-
 void DrawTestImage()
 {
 	fill(233, 224, 71);
@@ -304,15 +315,13 @@ void DrawTestImage()
 	line(340/2, 180/2, 290/2, 135/2);
 }
 
-void PaintScreen()
-{
-
-
-}
-
 void DrawSquare(int x, int y, int size, color c )
 {
 	fill(c);
 	noStroke();
 	rect(x, y, size, size);
 };
+
+// These are Garbage functions that get overwritten by WebCode if on web.
+void SetWebScreenSize() {};
+void WebSetup() {};
