@@ -1,0 +1,59 @@
+import java.util.concurrent.ThreadLocalRandom;
+
+public class Main
+{
+
+public static void main(String[] args)
+{
+	int[][] arrTest = new int[100][100];
+	LogArray(AddRoughCircle(arrTest, 25, 25, 10, 1));
+}
+
+public static int RandInt(int low, int high)
+{
+	return ThreadLocalRandom.current().nextInt(low, high + 1);
+}
+
+
+public static void LogArray(int[][] toDraw)
+{
+	String row = "";
+	for(int i = 0; i < toDraw.length; i++)
+	{
+		row = "";
+		for(int j = 0; j < toDraw[0].length; j++)
+		{
+			row += toDraw[i][j];
+		}
+		System.out.println(row);
+	}
+}
+
+
+public static int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius, int drawWith)
+{
+	for (int j = 0; j <= radius; j++)
+	{
+		int intCurrentY = yCenter - radius - j;
+		int Temp = (int)Math.sqrt(radius * radius - j * j);
+
+		int intLowerX = xCenter - Temp;
+		int intUpperX = xCenter + Temp;
+
+		//int intLowerX = xCenter - RandInt(Temp - 2, Temp + 2);
+		//int intUpperX = xCenter + RandInt(Temp - 2, Temp + 2);
+
+		for (int k = intLowerX; k <= intUpperX; k++)
+		{
+  			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit[0].length - 1) && (k >= 0) && (k <= arrayToEdit[0].length - 1))
+  			{
+				arrayToEdit[intCurrentY][k] = drawWith;
+			}
+		}
+	}
+
+
+	return arrayToEdit;
+}
+
+}
