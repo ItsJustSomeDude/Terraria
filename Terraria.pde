@@ -55,6 +55,8 @@ int screenCenterY;
 int previewWidth;
 int previewHeight;
 
+boolean wasdKeys[] = new boolean[4];
+
 // DumpPixelArray runs outside in draw().
 // Because of this, I need a bunch of vars to hold things.
 // Prefix: dpa
@@ -146,20 +148,20 @@ void draw()
 	{
 		arrWorld[playerX][playerY] = blockCovered;
 
-		if( ( key == 'w' ) && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
+		if( ( wasdKeys[0] ) && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
 		{
 			playerY--;
 		}
-		if( ( key == 'a' ) && (playerX != 0) && ( arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][playerY]) ) )
+		if( ( wasdKeys[1] ) && (playerX != 0) && ( arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][playerY]) ) )
 		{
 			facingLeft = true;
 			playerX--;
 		}
-		if( ( key == 's' ) && (playerY != arrWorld[0].length - 1) && ( arrayContains(backgroundBlocks, arrWorld[playerX][min(playerY + 1, arrWorld[0].length)]) ) )
+		if( ( wasdKeys[2] ) && (playerY != arrWorld[0].length - 1) && ( arrayContains(backgroundBlocks, arrWorld[playerX][min(playerY + 1, arrWorld[0].length)]) ) )
 		{
 			playerY++;
 		}
-		if( ( key == 'd' ) && (playerX != arrWorld.length - 1) && ( arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][playerY]) ) )
+		if( ( wasdKeys[3] ) && (playerX != arrWorld.length - 1) && ( arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][playerY]) ) )
 		{
 			facingLeft = false;
 			playerX++;
@@ -191,8 +193,12 @@ void keyReleased()
 	if( key == '`' || key == '~' )
 	{
 		SetWebScreenSize();
-		IntroMessages();
-		DumpPixelArray(arrWorld);
+		forcePreviewUpdate = true;
+		if( !bigPreview )
+		{
+			IntroMessages();
+			DumpPixelArray(arrWorld);
+		}
 	};
 
 	if( key == '+' || key == '=' )
@@ -221,7 +227,50 @@ void keyReleased()
 			DumpPixelArray(arrWorld);
 		}
 	}
+
+	if( key == 'w' || key == 'W' )
+	{
+		wasdKeys[0] = false;
+	}
+
+	if( key == 'a' || key == 'A' )
+	{
+		wasdKeys[1] = false;
+	}
+
+	if( key == 's' || key == 'S' )
+	{
+		wasdKeys[2] = false;
+	}
+
+	if( key == 'd' || key == 'D' )
+	{
+		wasdKeys[3] = false;
+	}
 };
+
+void keyPressed()
+{
+	if( key == 'w' || key == 'W' )
+	{
+		wasdKeys[0] = true;
+	}
+
+	if( key == 'a' || key == 'A' )
+	{
+		wasdKeys[1] = true;
+	}
+
+	if( key == 's' || key == 'S' )
+	{
+		wasdKeys[2] = true;
+	}
+
+	if( key == 'd' || key == 'D' )
+	{
+		wasdKeys[3] = true;
+	}
+}
 
 void updateLittlePreview(int centerX, int centerY)
 {

@@ -5,10 +5,10 @@ void SetWebScreenSize()
 {
 	size(window.innerWidth, window.innerHeight);
 
-	int screenCenterX = blockSize * floor((width / 2) / blockSize);
-	int screenCenterY = blockSize * floor((height / 2) / blockSize);
-	int previewWidth = ( floor( width / blockSize ) / 2 );
-	int previewHeight = ( floor( height / blockSize ) / 2 );
+	screenCenterX = blockSize * floor((width / 2) / blockSize);
+	screenCenterY = blockSize * floor((height / 2) / blockSize);
+	previewWidth = ( floor( width / blockSize ) / 2 );
+	previewHeight = ( floor( height / blockSize ) / 2 );
 };
 
 void WebSetup()
