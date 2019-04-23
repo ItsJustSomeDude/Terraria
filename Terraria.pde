@@ -12,6 +12,7 @@
 				"data/mc/gold_ore.png",
 				"data/mc/logs.png",
 				"data/mc/leaves.png",
+				"data/mc/player.png",
 				"data/mc/diamond_ore.png",
 
 				"data/mine/air.png",
@@ -24,18 +25,35 @@
 				"data/mine/gold_ore.png",
 				"data/mine/logs.png",
 				"data/mine/leaves.png",
+				"data/mine/player.png",
 				"data/mine/diamond_ore.png";
 */
 
 // [rows][cols]
-int[][] arrWorld = new int[401][800];
+int[][] arrWorld = new int[800][401];
 PImage[] blockImages = new PImage[100];
 int mouseSelectedBlockX = 0;
 int mouseSelectedBlockY = 0;
-int blockSize = 16;
-int screenScale = 2;
+int blockSize = 32;
+int screenScale = 4;
+boolean bigPreview = true;
 boolean myTextures = false;
-boolean forcePreviewUpdate = false;
+boolean forcePreviewUpdate = true;
+
+int blockCovered = 0;
+int[] backgroundBlocks = {0, 17, 18};
+
+int playerX = 400;
+int prevPlayerX = 400;
+int playerY = 180;
+int prevPlayerY = 180;
+
+boolean facingLeft = false;		// Actualy Backwards????? facingRight ????
+
+int screenCenterX;
+int screenCenterY;
+int previewWidth;
+int previewHeight;
 
 // DumpPixelArray runs outside in draw().
 // Because of this, I need a bunch of vars to hold things.
@@ -44,15 +62,20 @@ boolean dpaWorking = false;
 int[][] dpaToDraw;
 int dpaI = 0;
 
+// Color Data
+color[] blockColors = new color[100];
+
 void settings()
 {
 	// This only runs on PC, Web ignores it.
-	size(1200, 600);
+	size(800, 600);
 	noSmooth();
 }
 
 void setup()
 {
+	frameRate(30);
+
 	SetWebScreenSize();
 	WebSetup();
 	background(#FFFFFF);
@@ -62,8 +85,29 @@ void setup()
 
 	loadMyTextures();
 
-	IntroMessages();
+	screenCenterX = blockSize * floor((width / 2) / blockSize);
+	screenCenterY = blockSize * floor((height / 2) / blockSize);
+	previewWidth = ( floor( width / blockSize ) / 2 );
+	previewHeight = ( floor( height / blockSize ) / 2 );
+
+	blockColors[0] = color(204, 255, 255);
+	blockColors[1] = color(128, 128, 128);
+	blockColors[2] = color(0, 204, 0);
+	blockColors[3] = color(153, 102, 51);
+	blockColors[7] = color(0, 0, 0);
+
+	blockColors[11] = color(255, 102, 0);
+	blockColors[14] = color(255, 255, 102);
+	blockColors[15] = color(255, 191, 128);
+	blockColors[16] = color(38, 38, 38);
+	blockColors[17] = color(109, 49, 18);
+	blockColors[18] = color(51, 153, 51);
+
+	blockColors[56] = color(0, 204, 255);
+
 	GenerateWorld();
+	blockCovered = arrWorld[playerX][playerY];
+	arrWorld[playerX][playerY] = 19;		// Place the player
 
 	//int[][] arrayTest = new int[100][100];
 
@@ -72,6 +116,7 @@ void setup()
 
 void draw()
 {
+	/*
 	if(!focused)
 	{
 		fill(0, 0, 0);
@@ -84,6 +129,7 @@ void draw()
 		textSize(20);
 		text("Click to Focus", 700, 50);
 	}
+	*/
 
 	if(dpaWorking) { DumpPixelArrayWork(); };
 
@@ -93,19 +139,49 @@ void draw()
 	//print(mouseSelectedBlockX + ", ");
 	//println(mouseSelectedBlockY);
 
-	if( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) )
+	prevPlayerX = playerX;
+	prevPlayerY = playerY;
+
+	if(keyPressed)
+	{
+		arrWorld[playerX][playerY] = blockCovered;
+
+		if( ( key == 'w' ) && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
+		{
+			playerY--;
+		}
+		if( ( key == 'a' ) && (playerX != 0) && ( arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][playerY]) ) )
+		{
+			facingLeft = true;
+			playerX--;
+		}
+		if( ( key == 's' ) && (playerY != arrWorld[0].length - 1) && ( arrayContains(backgroundBlocks, arrWorld[playerX][min(playerY + 1, arrWorld[0].length)]) ) )
+		{
+			playerY++;
+		}
+		if( ( key == 'd' ) && (playerX != arrWorld.length - 1) && ( arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][playerY]) ) )
+		{
+			facingLeft = false;
+			playerX++;
+		}
+		//println(playerX + ", " + playerY);
+		blockCovered = arrWorld[playerX][playerY];
+		arrWorld[playerX][playerY] = 19;
+	}
+
+	//if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) ) && (focused) )
+
+	if( ( playerX != prevPlayerX ) || ( playerY != prevPlayerY ) || (forcePreviewUpdate == true) )
 	{
 		forcePreviewUpdate = false;
-		for(int i = -16/screenScale; i <= 16/screenScale; i++)
+		//updatePreview(mouseSelectedBlockX, mouseSelectedBlockY);
+		if( !bigPreview )
 		{
-			for(int j = -16/screenScale; j <= 16/screenScale; j++)
-			{
-				image(blockImages[0], 145 + blockSize*j, 400 + blockSize*i, blockSize, blockSize);
-				if( ( mouseSelectedBlockY+i >= 0 ) && ( mouseSelectedBlockX+j >= 0 ) && ( mouseSelectedBlockY+i < arrWorld.length ) && ( mouseSelectedBlockX+j < arrWorld[0].length ) )
-				{
-					image(blockImages[arrWorld[mouseSelectedBlockY+i][mouseSelectedBlockX+j]], 145 + blockSize*j, 400 + blockSize*i, blockSize, blockSize);
-				}
-			}
+			updateLittlePreview(playerX, playerY);
+		}
+		else
+		{
+			updateBigPreview(playerX, playerY);
 		}
 	}
 };
@@ -131,6 +207,89 @@ void keyReleased()
 			loadMyTextures();
 		}
 	}
+
+	if( key == '-' || key == '_' )
+	{
+		bigPreview = !bigPreview;
+		forcePreviewUpdate = true;
+		dpaWorking = false;
+		if( !bigPreview )
+		{
+			println("Switched to little preview.");
+			background(#FFFFFF);
+			IntroMessages();
+			DumpPixelArray(arrWorld);
+		}
+	}
+};
+
+void updateLittlePreview(int centerX, int centerY)
+{
+	for(int i = -16/screenScale; i <= 16/screenScale; i++)
+	{
+		for(int j = -16/screenScale; j <= 16/screenScale; j++)
+		{
+			image(blockImages[0], 145 + blockSize*j, 400 + blockSize*i, blockSize, blockSize);
+			if( ( centerY+i >= 0 ) && ( centerX+j >= 0 ) && ( centerY+i < arrWorld[0].length ) && ( centerX+j < arrWorld.length ) )
+			{
+				if( arrWorld[centerX+j][centerY+i] == 19 )
+				{
+					pushMatrix();
+					image(blockImages[blockCovered], 145 + blockSize * j, 400 + blockSize * i, blockSize, blockSize);
+					if( !facingLeft )
+					{
+						translate(145 + blockSize * j, 400 + blockSize * i);
+					}
+					else
+					{
+						translate(145 + blockSize + blockSize * j, 400 + blockSize * i);
+						scale(-1, 1);
+					}
+					image(blockImages[19], 0, 0, blockSize, blockSize);
+					popMatrix();
+				}
+				else
+				{
+					image(blockImages[arrWorld[centerX+j][centerY+i]], 145 + blockSize * j, 400 + blockSize * i, blockSize, blockSize);
+				}
+			}
+		}
+	}
+};
+
+void updateBigPreview(int centerX, int centerY)
+{
+	for(int i = -previewHeight; i <= previewHeight; i++)
+	{
+		for(int j = -previewWidth; j <= previewWidth; j++)
+		{
+			image(blockImages[0], screenCenterX + blockSize*j, screenCenterY + blockSize*i, blockSize, blockSize);
+
+			if( ( centerX+j >= 0 ) && ( centerX+j < arrWorld.length ) && ( centerY+i >= 0 ) && ( centerY+i < arrWorld[0].length ) )
+			{
+				if( arrWorld[centerX+j][centerY+i] == 19 )
+				{
+					pushMatrix();
+					image(blockImages[blockCovered], screenCenterX + blockSize * j, screenCenterY + blockSize * i, blockSize, blockSize);
+					if( !facingLeft )
+					{
+						translate(screenCenterX + blockSize * j, screenCenterY + blockSize * i);
+					}
+					else
+					{
+						translate(screenCenterX + blockSize + blockSize * j, screenCenterY + blockSize * i);
+						scale(-1, 1);
+					}
+					image(blockImages[19], 0, 0, blockSize, blockSize);
+					popMatrix();
+				}
+				else
+				{
+					image(blockImages[arrWorld[centerX+j][centerY+i]], screenCenterX + blockSize * j, screenCenterY + blockSize * i, blockSize, blockSize);
+				}
+			}
+		}
+	}
 };
 
 void loadMinecraftTextures()
@@ -147,6 +306,7 @@ void loadMinecraftTextures()
 	blockImages[16] = loadImage("data/mc/coal_ore.png");
 	blockImages[17] = loadImage("data/mc/logs.png");
 	blockImages[18] = loadImage("data/mc/leaves.png");
+	blockImages[19] = loadImage("data/mc/player.png");
 
 	blockImages[56] = loadImage("data/mc/diamond_ore.png");
 };
@@ -165,9 +325,22 @@ void loadMyTextures()
 	blockImages[16] = loadImage("data/mine/coal_ore.png");
 	blockImages[17] = loadImage("data/mine/logs.png");
 	blockImages[18] = loadImage("data/mine/leaves.png");
+	blockImages[19] = loadImage("data/mine/player.png");
 
 	blockImages[56] = loadImage("data/mine/diamond_ore.png");
 };
+
+boolean arrayContains(int[] arrayToSearch, int contains)
+{
+	for(int i = 0; i < arrayToSearch.length; i++)
+	{
+		if(arrayToSearch[i] == contains)
+		{
+			return true;
+		}
+	}
+	return false;
+}
 
 int CountInArray(int[][] toRead, int toFind)
 {
@@ -200,9 +373,9 @@ int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius
 
 		for (int k = intLowerX; k <= intUpperX; k++)
 		{
-			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit[0].length - 1) && (k >= 0) && (k <= arrayToEdit[0].length - 1))
+			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit[0].length - 1) && (k >= 0) && (k <= arrayToEdit.length - 1))
 			{
-				arrayToEdit[intCurrentY][k] = drawWith;
+				arrayToEdit[k][intCurrentY] = drawWith;
 			}
 		}
 	}
@@ -220,9 +393,9 @@ int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius
 
 		for (int k = intLowerX; k <= intUpperX; k++)
 		{
-			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit.length - 1) && (k >= 0) && (k <= arrayToEdit[0].length - 1))
+			if ((intCurrentY >= 0) && (intCurrentY <= arrayToEdit[0].length - 1) && (k >= 0) && (k <= arrayToEdit.length - 1))
 			{
-				arrayToEdit[intCurrentY][k] = drawWith;
+				arrayToEdit[k][intCurrentY] = drawWith;
 			}
 		}
 	}
@@ -231,62 +404,13 @@ int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius
 
 void DumpPixelArrayWork()
 {
-	int tmp = 0;
-	for(int j = 0; j < dpaToDraw[0].length; j++)
+	for(int j = 0; j < dpaToDraw.length; j++)
 	{
-		tmp = dpaToDraw[dpaI][j];
-		if( tmp == 0 )
-		{
-			stroke(204, 255, 255);
-		}
-		else if( tmp == 1 )
-		{
-			stroke(128, 128, 128);
-		}
-		else if( tmp == 2 )
-		{
-			stroke(0, 204, 0);
-		}
-		else if( tmp == 3 )
-		{
-			stroke(153, 102, 51);
-		}
-		else if( tmp == 7 )
-		{
-			stroke(0, 0, 0);
-		}
-		else if( tmp == 15 )
-		{
-			stroke(255, 191, 128);
-		}
-		else if( tmp == 16 )
-		{
-			stroke(38, 38, 38);
-		}
-		else if( tmp == 17 )
-		{
-			stroke(109, 49, 18);
-		}
-		else if( tmp == 18 )
-		{
-			stroke(51, 153, 51);
-		}
-		else if( tmp == 56 )
-		{
-			stroke(0, 204, 255);
-		}
-		else if( tmp == 14 )
-		{
-			stroke(255, 255, 102);
-		}
-		else if( tmp == 11 )
-		{
-			stroke(255, 102, 0);
-		}
+		stroke(blockColors[dpaToDraw[j][dpaI]]);
 		point(300 + j, 80 + dpaI);
 	}
 
-	if( dpaI == dpaToDraw.length - 1 )
+	if( dpaI == dpaToDraw[0].length - 1 )
 	{
 		dpaWorking = false;
 	}
@@ -326,43 +450,42 @@ void GenerateWorld()
 	// Rows 5         =  Grass:     2
 
 	// Stone
-	for(int i = 200; i <= 399; i++)
+	for(int i = 0; i < arrWorld.length; i++)
 	{
-		for(int j = 0; j < arrWorld[0].length; j++)
+		for(int j = 200; j <= 399; j++)
 		{
 			arrWorld[i][j] = 1;
 		};
 	};
 
 	// Dirt
-	for(int i = 190; i <= 199; i++)
+	for(int i = 0; i < arrWorld.length; i++)
 	{
-		for(int j = 0; j < arrWorld[0].length; j++)
+		for(int j = 190; j <= 199; j++)
 		{
 			arrWorld[i][j] = 3;
 		};
 	};
 
 	// Add Surface Randomness
-	for(int i = 0; i <= arrWorld[0].length; i++)
+	for(int i = 0; i <= arrWorld.length; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(195,200), RandInt(2,8), 3, 0);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0, arrWorld.length), RandInt(195,200), RandInt(2,8), 3, 0);
 	}
 
 	// Add Grass and Tress
-	for(int i = 0; i < arrWorld[0].length; i++)
+	for(int i = 0; i < arrWorld.length; i++)
 	{
-		for(int j = 0; j < arrWorld.length; j++)
+		for(int j = 0; j < arrWorld[0].length; j++)
 		{
-			if(arrWorld[j][i] == 3)
+			if(arrWorld[i][j] == 3)
 			{
-				arrWorld[j][i] = 2;
+				arrWorld[i][j] = 2;
 				if( RandInt(0,9) == 0 )
 				{
 					// Add a tree
-					arrWorld[j][i] = 3;
+					arrWorld[i][j] = 3;
 					int treeHeight = RandInt(4,8);
-
 					int leafRadius = RandInt(3,5);
 					//println("Adding tree.  Height: " + treeHeight + ", Leaves: " + leafRadius);
 
@@ -370,7 +493,7 @@ void GenerateWorld()
 
 					for(int k = j - 1; k >= j - treeHeight; k--)
 					{
-						arrWorld[k][i] = 17;
+						arrWorld[i][k] = 17;
 					}
 				}
 				break;
@@ -378,53 +501,46 @@ void GenerateWorld()
 		}
 	}
 
-	/*
-	for(int i = 0; i < arrWorld[0].length; i++)
-	{
-
-	};
-	*/
-
 	// Add Sub-Surface Randomness
-	for(int i = 0; i <= arrWorld[0].length; i++)
+	for(int i = 0; i <= arrWorld.length; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(204,201), RandInt(1,6), 1, 2);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(204,201), RandInt(1,6), 1, 2);
 	}
 
 	// Add Coal
-	for(int i = 0; i <= arrWorld[0].length / 4; i++)
+	for(int i = 0; i <= arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(200,399), 3, 16, 1);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(200,399), 3, 16, 1);
 	}
 
 	// Add Iron
-	for(int i = 0; i <= arrWorld[0].length / 4; i++)
+	for(int i = 0; i <= arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(200,399), 2, 15, 1);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(200,399), 2, 15, 1);
 	}
 
 	// Add Diamonds
-	for(int i = 0; i <= .25 * arrWorld[0].length / 4; i++)
+	for(int i = 0; i <= .25 * arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(350,400), 1, 56, 1);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(350,400), 1, 56, 1);
 	}
 
 	// Add Gold
-	for(int i = 0; i <= .3 * arrWorld[0].length / 4; i++)
+	for(int i = 0; i <= .3 * arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld[0].length), RandInt(350,400), 1, 14, 1);
+		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(350,400), 1, 14, 1);
 	}
 
 	// Bedrock
-	for(int i = 0; i < arrWorld[0].length; i++)
+	for(int i = 0; i < arrWorld.length; i++)
 	{
-		arrWorld[400][i] = 7;
+		arrWorld[i][400] = 7;
 	};
 
 	println("Iron: " + CountInArray(arrWorld, 15));
 	println("Coal: " + CountInArray(arrWorld, 16));
 	println("Diamonds: " + CountInArray(arrWorld, 56));
-	DumpPixelArray(arrWorld);
+	println("Gold: " + CountInArray(arrWorld, 14));
 };
 
 int RandInt(int min, int max)
@@ -456,13 +572,6 @@ void DrawTestImage()
 	line(150/2, 295/2, 350/2, 295/2);
 	line(160/2, 180/2, 210/2, 135/2);
 	line(340/2, 180/2, 290/2, 135/2);
-};
-
-void DrawSquare(int x, int y, int size, color c )
-{
-	fill(c);
-	noStroke();
-	rect(x, y, size, size);
 };
 
 // These are Garbage functions that get overwritten by WebCode if on web.

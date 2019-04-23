@@ -3,12 +3,15 @@
 
 void SetWebScreenSize()
 {
-	println("Setting up Screen for Web.");
 	size(window.innerWidth, window.innerHeight);
+
+	int screenCenterX = blockSize * floor((width / 2) / blockSize);
+	int screenCenterY = blockSize * floor((height / 2) / blockSize);
+	int previewWidth = ( floor( width / blockSize ) / 2 );
+	int previewHeight = ( floor( height / blockSize ) / 2 );
 };
 
 void WebSetup()
 {
-	println("Setting up Sketch for web.");
 	textFont(loadFont("FFScala.ttf"));
-}
+};
