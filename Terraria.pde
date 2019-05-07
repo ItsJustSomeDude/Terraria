@@ -870,9 +870,9 @@ void DrawTestImage()
 	line(160/2, 180/2, 210/2, 135/2);
 	line(340/2, 180/2, 290/2, 135/2);
 
-	strokeWeight(1);		// This caused so many problems.  Bad Smiley.  -|==>  :(  <==|-
-	};
+	strokeWeight(1);		// This caused so many problems.  Bad Smiley. :(
+};
 
-	// These are Garbage functions that get overwritten by WebCode if on web.
-	void SetWebScreenSize() {};
-	void WebSetup() {};
+// These are Garbage functions that get overwritten by WebCode if on web.
+void SetWebScreenSize() {};
+void WebSetup() {};
