@@ -1,37 +1,52 @@
 /*
 	@pjs
-		crisp="true";
-		pauseOnBlur="false";
-		preload="data/mc/air.png",
-				"data/mc/dirt.png",
-				"data/mc/grass.png",
-				"data/mc/stone.png",
-				"data/mc/bedrock.png",
-				"data/mc/iron_ore.png",
-				"data/mc/coal_ore.png",
-				"data/mc/gold_ore.png",
-				"data/mc/logs.png",
-				"data/mc/leaves.png",
-				"data/mc/player.png",
-				"data/mc/diamond_ore.png",
+	crisp="true";
+	pauseOnBlur="false";
+	preload="data/mc/air.png",
+			"data/mc/dirt.png",
+			"data/mc/grass.png",
+			"data/mc/grass-left.png",
+			"data/mc/grass-right.png",
+			"data/mc/grass-both.png",
+			"data/mc/stone.png",
+			"data/mc/bedrock.png",
+			"data/mc/iron_ore.png",
+			"data/mc/coal_ore.png",
+			"data/mc/gold_ore.png",
+			"data/mc/logs.png",
+			"data/mc/leaves.png",
+			"data/mc/player.png",
+			"data/mc/diamond_ore.png",
 
-				"data/mine/air.png",
-				"data/mine/dirt.png",
-				"data/mine/grass.png",
-				"data/mine/stone.png",
-				"data/mine/bedrock.png",
-				"data/mine/iron_ore.png",
-				"data/mine/coal_ore.png",
-				"data/mine/gold_ore.png",
-				"data/mine/logs.png",
-				"data/mine/leaves.png",
-				"data/mine/player.png",
-				"data/mine/diamond_ore.png";
+			"data/mine/select.png",
+			"data/mine/air.png",
+			"data/mine/dirt.png",
+			"data/mine/grass.png",
+			"data/mine/grass-left.png",
+			"data/mine/grass-right.png",
+			"data/mine/grass-both.png",
+			"data/mine/stone.png",
+			"data/mine/bedrock.png",
+			"data/mine/iron_ore.png",
+			"data/mine/coal_ore.png",
+			"data/mine/gold_ore.png",
+			"data/mine/logs.png",
+			"data/mine/leaves.png",
+			"data/mine/player.png",
+			"data/mine/diamond_ore.png";
 */
+
+// That stuff up there was the directives.  They get ignored by PC, interpreted
+// by Web.  They handle image files and all that other beutiful garbage.
+
+boolean printDebug = false;
 
 // [rows][cols]
 int[][] arrWorld = new int[800][401];
+boolean[][] blockFlip = new boolean[800][401];
 PImage[] blockImages = new PImage[100];
+PImage[] grassBlocks = new PImage[4];
+PImage selectImage;
 int mouseSelectedBlockX = 0;
 int mouseSelectedBlockY = 0;
 int blockSize = 32;
@@ -39,14 +54,27 @@ int screenScale = 4;
 boolean bigPreview = true;
 boolean myTextures = false;
 boolean forcePreviewUpdate = true;
+boolean mouseOverEdge = false;
 
 int blockCovered = 0;
+int blockInHand = 0;
 int[] backgroundBlocks = {0, 17, 18};
+int[] selectorBlacklist = {7, 19};
+int[] selectorWhitelist = {0, 19};
 
 int playerX = 400;
 int prevPlayerX = 400;
-int playerY = 180;
+int playerY = 178;
 int prevPlayerY = 180;
+
+int selectorX = 0;
+int selectorY = 0;
+
+int playerXPrevSelector = 0;
+int playerYPrevSelector = 0;
+
+int mouseBlockX = 0;
+int mouseBlockY = 0;
 
 boolean facingLeft = false;		// Actualy Backwards????? facingRight ????
 
@@ -83,7 +111,7 @@ void setup()
 	background(#FFFFFF);
 	stroke(#000000);
 	fill(#000000);
-	println("Program Start.");
+	debugLog("Program Start.");
 
 	loadMyTextures();
 
@@ -91,6 +119,8 @@ void setup()
 	screenCenterY = blockSize * floor((height / 2) / blockSize);
 	previewWidth = ( floor( width / blockSize ) / 2 );
 	previewHeight = ( floor( height / blockSize ) / 2 );
+
+	selectImage = loadImage("data/mine/select.png");
 
 	blockColors[0] = color(204, 255, 255);
 	blockColors[1] = color(128, 128, 128);
@@ -104,48 +134,49 @@ void setup()
 	blockColors[16] = color(38, 38, 38);
 	blockColors[17] = color(109, 49, 18);
 	blockColors[18] = color(51, 153, 51);
+	blockColors[19] = color(255, 0, 0);
 
 	blockColors[56] = color(0, 204, 255);
 
 	GenerateWorld();
 	blockCovered = arrWorld[playerX][playerY];
 	arrWorld[playerX][playerY] = 19;		// Place the player
-
-	//int[][] arrayTest = new int[100][100];
-
-	//DumpPixelArray(AddRoughCircle(arrayTest, 50, 50, 60, 1, 0));
 };
 
 void draw()
 {
-	/*
-	if(!focused)
-	{
-		fill(0, 0, 0);
-		textSize(20);
-		text("Click to Focus", 700, 50);
-	}
-	else
-	{
-		fill(255, 255, 255);
-		textSize(20);
-		text("Click to Focus", 700, 50);
-	}
-	*/
-
 	if(dpaWorking) { DumpPixelArrayWork(); };
-
-	mouseSelectedBlockX = mouseX - 299;
-	mouseSelectedBlockY = mouseY - 79;
-
-	//print(mouseSelectedBlockX + ", ");
-	//println(mouseSelectedBlockY);
 
 	prevPlayerX = playerX;
 	prevPlayerY = playerY;
 
+	if(mousePressed)
+	{
+		if( ( mouseButton == LEFT ) && mouseCanInteract() )
+		{
+			arrWorld[mouseBlockX][mouseBlockY] = 0;
+			forcePreviewUpdate = true;
+		}
+
+		if( ( mouseButton == CENTER ) && mouseCanInteract() )
+		{
+			blockInHand = arrWorld[mouseBlockX][mouseBlockY];
+		}
+
+		if( ( mouseButton == RIGHT ) && mouseCanInteract() )
+		{
+			arrWorld[mouseBlockX][mouseBlockY] = blockInHand;
+			forcePreviewUpdate = true;
+		}
+	}
+
 	if(keyPressed)
 	{
+		if( !bigPreview )
+		{
+			forcePreviewUpdate = true;
+		}
+
 		arrWorld[playerX][playerY] = blockCovered;
 
 		if( ( wasdKeys[0] ) && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
@@ -166,25 +197,30 @@ void draw()
 			facingLeft = false;
 			playerX++;
 		}
-		//println(playerX + ", " + playerY);
+		//debugLog(playerX + ", " + playerY);
 		blockCovered = arrWorld[playerX][playerY];
 		arrWorld[playerX][playerY] = 19;
 	}
 
-	//if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) ) && (focused) )
+	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) ) && (!bigPreview) )
+	{
+		mouseSelectedBlockX = mouseX - 299;
+		mouseSelectedBlockY = mouseY - 79;
+		forcePreviewUpdate = false;
+		updateLittlePreview(mouseSelectedBlockX, mouseSelectedBlockY);
+	}
 
-	if( ( playerX != prevPlayerX ) || ( playerY != prevPlayerY ) || (forcePreviewUpdate == true) )
+	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) ) && (bigPreview) )
+	{
+		updateSelector();
+	}
+
+	if( ( ( playerX != prevPlayerX ) || ( playerY != prevPlayerY ) || (forcePreviewUpdate == true) ) && (bigPreview) )
 	{
 		forcePreviewUpdate = false;
-		//updatePreview(mouseSelectedBlockX, mouseSelectedBlockY);
-		if( !bigPreview )
-		{
-			updateLittlePreview(playerX, playerY);
-		}
-		else
-		{
-			updateBigPreview(playerX, playerY);
-		}
+		updateBigPreview(playerX, playerY);
+		updateSelector();
+		//debugLog("Drew Big Preview.");
 	}
 };
 
@@ -221,10 +257,21 @@ void keyReleased()
 		dpaWorking = false;
 		if( !bigPreview )
 		{
-			println("Switched to little preview.");
+			blockSize = 16;
+			screenScale = 2;
 			background(#FFFFFF);
 			IntroMessages();
+
+			strokeWeight(1);
+			stroke(#000000);
+			point(250, 250);
+
 			DumpPixelArray(arrWorld);
+		}
+		else
+		{
+			blockSize = 32;
+			screenScale = 4;
 		}
 	}
 
@@ -272,12 +319,87 @@ void keyPressed()
 	}
 }
 
+boolean mouseCanInteract()
+{
+	if( mouseOverEdge || arrayContains(selectorBlacklist, arrWorld[mouseBlockX][mouseBlockY]) )
+	{
+		return false;
+	}
+	else if( !arrayContains(selectorWhitelist, arrWorld[mouseBlockX][mouseBlockY]) || !arrayContains(selectorWhitelist, arrWorld[min(mouseBlockX+1, arrWorld.length-1)][mouseBlockY]) || !arrayContains(selectorWhitelist, arrWorld[max(0, mouseBlockX-1)][mouseBlockY]) || !arrayContains(selectorWhitelist, arrWorld[mouseBlockX][min(mouseBlockY+1, arrWorld[0].length-1)]) || !arrayContains(selectorWhitelist, arrWorld[mouseBlockX][max(mouseBlockY-1, 0)]) )
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+};
+
+void updateSelector()
+{
+	if( ( playerX == playerXPrevSelector ) && ( playerY == playerYPrevSelector ) && mouseCanInteract() )
+	{
+		drawBlock(mouseBlockX, mouseBlockY, selectorX, selectorY);
+		/*
+		pushMatrix();
+		if( blockFlip[mouseBlockX][mouseBlockY] )
+		{
+			translate(selectorX, selectorY);
+		}
+		else
+		{
+			translate(selectorX + blockSize, selectorY);
+			scale(-1, 1);
+		}
+
+		if( mouseCanInteract() )
+		{
+			image(blockImages[0], 0, 0, blockSize, blockSize);
+			image(blockImages[arrWorld[mouseBlockX][mouseBlockY]], 0, 0, blockSize, blockSize);
+		}
+		popMatrix();
+		*/
+	}
+
+	playerXPrevSelector = playerX;
+	playerYPrevSelector = playerY;
+
+	selectorX = blockSize * floor( mouseX / blockSize );
+	selectorY = blockSize * floor( mouseY / blockSize );
+
+	mouseOverEdge = false;
+
+	mouseBlockX = playerX - previewWidth + floor(mouseX / blockSize);
+	mouseBlockY = playerY - previewHeight + floor(mouseY / blockSize);
+
+	if( ( mouseBlockX < 0 ) || ( mouseBlockY < 0 ) || ( mouseBlockX >= arrWorld.length ) || ( mouseBlockY >= arrWorld[0].length ) )
+	{
+		mouseOverEdge = true;
+		mouseBlockX = max(0, min(arrWorld.length-1, mouseBlockX));
+		mouseBlockY = max(0, min(arrWorld[0].length-1, mouseBlockY));
+	}
+
+	if( mouseCanInteract() )
+	{
+		image(selectImage, selectorX, selectorY, blockSize, blockSize);
+	}
+};
+
 void updateLittlePreview(int centerX, int centerY)
 {
+	for(int i = playerX-1; i <= playerX+1; i++)
+	{
+		for(int j = playerY-1; j <= playerY+1; j++)
+		{
+			DumpPixel(arrWorld, i, j);
+		}
+	}
+
 	for(int i = -16/screenScale; i <= 16/screenScale; i++)
 	{
 		for(int j = -16/screenScale; j <= 16/screenScale; j++)
 		{
+			/*
 			image(blockImages[0], 145 + blockSize*j, 400 + blockSize*i, blockSize, blockSize);
 			if( ( centerY+i >= 0 ) && ( centerX+j >= 0 ) && ( centerY+i < arrWorld[0].length ) && ( centerX+j < arrWorld.length ) )
 			{
@@ -302,12 +424,15 @@ void updateLittlePreview(int centerX, int centerY)
 					image(blockImages[arrWorld[centerX+j][centerY+i]], 145 + blockSize * j, 400 + blockSize * i, blockSize, blockSize);
 				}
 			}
+			*/
+			drawBlock(centerX+j, centerY+i, 145 + blockSize*j, 400 + blockSize*i);
 		}
 	}
 };
 
 void updateBigPreview(int centerX, int centerY)
 {
+	/*
 	for(int i = -previewHeight; i <= previewHeight; i++)
 	{
 		for(int j = -previewWidth; j <= previewWidth; j++)
@@ -334,9 +459,88 @@ void updateBigPreview(int centerX, int centerY)
 				}
 				else
 				{
-					image(blockImages[arrWorld[centerX+j][centerY+i]], screenCenterX + blockSize * j, screenCenterY + blockSize * i, blockSize, blockSize);
+					pushMatrix();
+					if( blockFlip[centerX+j][centerY+i] )
+					{
+						translate(screenCenterX + blockSize * j, screenCenterY + blockSize * i);
+					}
+					else
+					{
+						translate(screenCenterX + blockSize + blockSize * j, screenCenterY + blockSize * i);
+						scale(-1, 1);
+					}
+					image(blockImages[arrWorld[centerX+j][centerY+i]], 0, 0, blockSize, blockSize);
+					popMatrix();
 				}
 			}
+		}
+	}
+	*/
+
+	for(int i = -previewHeight; i <= previewHeight; i++)
+	{
+		for(int j = -previewWidth; j <= previewWidth; j++)
+		{
+			drawBlock(centerX+j, centerY+i, screenCenterX + blockSize * j, screenCenterY + blockSize * i);
+		}
+	}
+};
+
+void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
+{
+	image(blockImages[0], screenX, screenY, blockSize, blockSize);
+
+	if( ( matrixX >= 0 ) && ( matrixX < arrWorld.length ) && ( matrixY >= 0 ) && ( matrixY < arrWorld[0].length ) )
+	{
+		if( arrWorld[matrixX][matrixY] == 2 )
+		{
+			if( arrayContains(selectorWhitelist, arrWorld[max(0, matrixX-1)][matrixY] ) && arrayContains(selectorWhitelist, arrWorld[min(arrWorld.length-1, matrixX+1)][matrixY] ) )
+			{
+				image(grassBlocks[2], screenX, screenY, blockSize, blockSize);
+			}
+			else if( arrayContains(selectorWhitelist, arrWorld[max(0, matrixX-1)][matrixY] ) )
+			{
+				image(grassBlocks[1], screenX, screenY, blockSize, blockSize);
+			}
+			else if( arrayContains(selectorWhitelist, arrWorld[min(arrWorld.length-1, matrixX+1)][matrixY] ) )
+			{
+				image(grassBlocks[3], screenX, screenY, blockSize, blockSize);
+			}
+			else
+			{
+				image(grassBlocks[0], screenX, screenY, blockSize, blockSize);
+			}
+		}
+		else if( arrWorld[matrixX][matrixY] == 19 )
+		{
+			pushMatrix();
+			image(blockImages[blockCovered], screenX, screenY, blockSize, blockSize);
+			if( !facingLeft )
+			{
+				translate(screenX, screenY);
+			}
+			else
+			{
+				translate(screenX + blockSize, screenY);
+				scale(-1, 1);
+			}
+			image(blockImages[19], 0, 0, blockSize, blockSize);
+			popMatrix();
+		}
+		else
+		{
+			pushMatrix();
+			if( blockFlip[matrixX][matrixY] )
+			{
+				translate(screenX, screenY);
+			}
+			else
+			{
+				translate(screenX + blockSize, screenY);
+				scale(-1, 1);
+			}
+			image(blockImages[arrWorld[matrixX][matrixY]], 0, 0, blockSize, blockSize);
+			popMatrix();
 		}
 	}
 };
@@ -358,6 +562,11 @@ void loadMinecraftTextures()
 	blockImages[19] = loadImage("data/mc/player.png");
 
 	blockImages[56] = loadImage("data/mc/diamond_ore.png");
+
+	grassBlocks[0] = loadImage("data/mc/grass.png");
+	grassBlocks[1] = loadImage("data/mc/grass-left.png");
+	grassBlocks[2] = loadImage("data/mc/grass-both.png");
+	grassBlocks[3] = loadImage("data/mc/grass-right.png");
 };
 
 void loadMyTextures()
@@ -377,6 +586,11 @@ void loadMyTextures()
 	blockImages[19] = loadImage("data/mine/player.png");
 
 	blockImages[56] = loadImage("data/mine/diamond_ore.png");
+
+	grassBlocks[0] = loadImage("data/mine/grass.png");
+	grassBlocks[1] = loadImage("data/mine/grass-left.png");
+	grassBlocks[2] = loadImage("data/mine/grass-both.png");
+	grassBlocks[3] = loadImage("data/mine/grass-right.png");
 };
 
 boolean arrayContains(int[] arrayToSearch, int contains)
@@ -476,6 +690,12 @@ void DumpPixelArray(int[][] toDraw)
 	dpaI = 0;
 };
 
+void DumpPixel(int[][] toDraw, int xToDraw, int yToDraw)
+{
+	stroke(blockColors[toDraw[xToDraw][yToDraw]]);
+	point(300 + xToDraw, 80 + yToDraw);
+};
+
 void LogArray(int[][] toDraw)
 {
 	String row = "";
@@ -486,7 +706,7 @@ void LogArray(int[][] toDraw)
 		{
 			row += toDraw[i][j];
 		}
-		println(row);
+		debugLog(row);
 	}
 };
 
@@ -536,7 +756,7 @@ void GenerateWorld()
 					arrWorld[i][j] = 3;
 					int treeHeight = RandInt(4,8);
 					int leafRadius = RandInt(3,5);
-					//println("Adding tree.  Height: " + treeHeight + ", Leaves: " + leafRadius);
+					//debugLog("Adding tree.  Height: " + treeHeight + ", Leaves: " + leafRadius);
 
 					AddRoughCircle(arrWorld, i, j - treeHeight + leafRadius - 1, leafRadius, 18, 1);
 
@@ -586,15 +806,43 @@ void GenerateWorld()
 		arrWorld[i][400] = 7;
 	};
 
-	println("Iron: " + CountInArray(arrWorld, 15));
-	println("Coal: " + CountInArray(arrWorld, 16));
-	println("Diamonds: " + CountInArray(arrWorld, 56));
-	println("Gold: " + CountInArray(arrWorld, 14));
+	debugLog("Iron: " + CountInArray(arrWorld, 15));
+	debugLog("Coal: " + CountInArray(arrWorld, 16));
+	debugLog("Diamonds: " + CountInArray(arrWorld, 56));
+	debugLog("Gold: " + CountInArray(arrWorld, 14));
+
+	for(int i = 0; i < blockFlip.length; i++)
+	{
+		for(int j = 0; j < blockFlip[0].length; j++)
+		{
+			blockFlip[i][j] = RandBool();
+		}
+	}
 };
 
 int RandInt(int min, int max)
 {
-	return int(random(min,max));
+	return round(random(min,max));
+};
+
+boolean RandBool()
+{
+	if( round(random(1, 2)) == 1 )
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+};
+
+void debugLog(String toPrint)
+{
+	if(printDebug)
+	{
+		println(toPrint);
+	}
 };
 
 void IntroMessages()
@@ -621,8 +869,10 @@ void DrawTestImage()
 	line(150/2, 295/2, 350/2, 295/2);
 	line(160/2, 180/2, 210/2, 135/2);
 	line(340/2, 180/2, 290/2, 135/2);
-};
 
-// These are Garbage functions that get overwritten by WebCode if on web.
-void SetWebScreenSize() {};
-void WebSetup() {};
+	strokeWeight(1);		// This caused so many problems.  Bad Smiley.  -|==>  :(  <==|-
+	};
+
+	// These are Garbage functions that get overwritten by WebCode if on web.
+	void SetWebScreenSize() {};
+	void WebSetup() {};
