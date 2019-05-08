@@ -5,13 +5,8 @@ void SetWebScreenSize()
 {
 	size(window.innerWidth, window.innerHeight);
 
-	screenCenterX = blockSize * floor((width / 2) / blockSize);
-	screenCenterY = blockSize * floor((height / 2) / blockSize);
-	previewWidth = ( floor( width / blockSize ) / 2 );
-	previewHeight = ( floor( height / blockSize ) / 2 );
-};
-
-void WebSetup()
-{
-	textFont(loadFont("FFScala.ttf"));
+	screenCenterX = (int)( blockSize * floor((width / 2) / blockSize));
+	screenCenterY = (int)( blockSize * floor((height / 2) / blockSize));
+	previewWidth = (int)( floor( width / blockSize ) / 2 );
+	previewHeight = (int)( floor( height / blockSize ) / 2 );
 };

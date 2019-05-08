@@ -2,6 +2,7 @@
 	@pjs
 	crisp="true";
 	pauseOnBlur="false";
+	font="data/Arial.ttf";
 	preload="data/mc/air.png",
 			"data/mc/dirt.png",
 			"data/mc/grass.png",
@@ -39,7 +40,8 @@
 // That stuff up there was the directives.  They get ignored by PC, interpreted
 // by Web.  They handle image files and all that other beutiful garbage.
 
-boolean printDebug = false;
+boolean printDebug = true;
+boolean showFPS = true;
 
 // [rows][cols]
 int[][] arrWorld = new int[800][401];
@@ -104,10 +106,11 @@ void settings()
 
 void setup()
 {
-	frameRate(30);
+	frameRate(60);
 
 	SetWebScreenSize();
-	WebSetup();
+
+	textFont(createFont("Arial",32));
 	background(#FFFFFF);
 	stroke(#000000);
 	fill(#000000);
@@ -115,10 +118,10 @@ void setup()
 
 	loadMyTextures();
 
-	screenCenterX = blockSize * floor((width / 2) / blockSize);
-	screenCenterY = blockSize * floor((height / 2) / blockSize);
-	previewWidth = ( floor( width / blockSize ) / 2 );
-	previewHeight = ( floor( height / blockSize ) / 2 );
+	screenCenterX = (int)( blockSize * floor((width / 2) / blockSize));
+	screenCenterY = (int)( blockSize * floor((height / 2) / blockSize));
+	previewWidth = (int)( floor( width / blockSize ) / 2 );
+	previewHeight = (int)( floor( height / blockSize ) / 2 );
 
 	selectImage = loadImage("data/mine/select.png");
 
@@ -222,6 +225,18 @@ void draw()
 		updateSelector();
 		//debugLog("Drew Big Preview.");
 	}
+
+	if(showFPS)
+	{
+		noStroke();
+		fill(#FFFFFF);
+		rect(0, 0, 45, 15);
+		stroke(#000000);
+		strokeWeight(1);
+		fill(#000000);
+		textSize(12);
+		text(round(frameRate) + " FPS", 2, 12);
+	}
 };
 
 void keyReleased()
@@ -273,6 +288,12 @@ void keyReleased()
 			blockSize = 32;
 			screenScale = 4;
 		}
+	}
+
+	if( key == '\\' || key == '|' )
+	{
+		showFPS = !showFPS;
+		forcePreviewUpdate = true;
 	}
 
 	if( key == 'w' || key == 'W' )
@@ -369,8 +390,8 @@ void updateSelector()
 
 	mouseOverEdge = false;
 
-	mouseBlockX = playerX - previewWidth + floor(mouseX / blockSize);
-	mouseBlockY = playerY - previewHeight + floor(mouseY / blockSize);
+	mouseBlockX = playerX - previewWidth + (int)floor(mouseX / blockSize);
+	mouseBlockY = playerY - previewHeight + (int)floor(mouseY / blockSize);
 
 	if( ( mouseBlockX < 0 ) || ( mouseBlockY < 0 ) || ( mouseBlockX >= arrWorld.length ) || ( mouseBlockY >= arrWorld[0].length ) )
 	{
@@ -477,9 +498,9 @@ void updateBigPreview(int centerX, int centerY)
 	}
 	*/
 
-	for(int i = -previewHeight; i <= previewHeight; i++)
+	for(int i = -previewHeight; i <= previewHeight+1; i++)
 	{
-		for(int j = -previewWidth; j <= previewWidth; j++)
+		for(int j = -previewWidth; j <= previewWidth+1; j++)
 		{
 			drawBlock(centerX+j, centerY+i, screenCenterX + blockSize * j, screenCenterY + blockSize * i);
 		}
