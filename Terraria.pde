@@ -40,7 +40,7 @@
 // That stuff up there was the directives.  They get ignored by PC, interpreted
 // by Web.  They handle image files and all that other beutiful garbage.
 
-boolean printDebug = true;
+boolean printDebug = false;
 boolean showFPS = true;
 
 // [rows][cols]
