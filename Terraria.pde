@@ -1,4 +1,4 @@
-/*
+ /*
 	@pjs
 	crisp="true";
 	pauseOnBlur="false";
@@ -16,8 +16,10 @@
 			"data/mc/gold_ore.png",
 			"data/mc/logs.png",
 			"data/mc/leaves.png",
-			"data/mc/player.png",
+			"data/mc/player1.png",
+			"data/mc/player2.png",
 			"data/mc/diamond_ore.png",
+			"data/mc/inventory.png",
 
 			"data/mine/select.png",
 			"data/mine/air.png",
@@ -33,7 +35,10 @@
 			"data/mine/gold_ore.png",
 			"data/mine/logs.png",
 			"data/mine/leaves.png",
-			"data/mine/player.png",
+			"data/mine/player1.png",
+			"data/mine/player2.png",
+			"data/mine/player3.png",
+			"data/mine/player4.png",
 			"data/mine/diamond_ore.png";
 */
 
@@ -49,6 +54,7 @@ boolean[][] blockFlip = new boolean[800][401];
 PImage[] blockImages = new PImage[100];
 PImage[] grassBlocks = new PImage[4];
 PImage selectImage;
+PImage inventoryImage;
 int mouseSelectedBlockX = 0;
 int mouseSelectedBlockY = 0;
 int blockSize = 32;
@@ -68,6 +74,7 @@ int playerX = 400;
 int prevPlayerX = 400;
 int playerY = 178;
 int prevPlayerY = 180;
+int currentPlayer = 1;
 
 int selectorX = 0;
 int selectorY = 0;
@@ -97,6 +104,16 @@ int dpaI = 0;
 // Color Data
 color[] blockColors = new color[100];
 
+// inventory stuff
+int[][] arrInventory = new int[9][4];
+boolean inventoryOpen = false;
+int inventoryWidth = 176;
+int inventoryHeight = 166;
+int inventoryTopLeftX = 50;
+int inventoryTopLeftY = 50;
+int inventryScale = 2;
+int inventoryItemSize = 16;
+
 void settings()
 {
 	// This only runs on PC, Web ignores it.
@@ -107,9 +124,7 @@ void settings()
 void setup()
 {
 	frameRate(60);
-
-	SetWebScreenSize();
-
+	setWebScreenSize();
 	textFont(createFont("Arial",32));
 	background(#FFFFFF);
 	stroke(#000000);
@@ -117,20 +132,19 @@ void setup()
 	debugLog("Program Start.");
 
 	loadMyTextures();
+	selectImage = loadImage("data/mine/select.png");
+	inventoryImage = loadImage("data/mc/inventory.png");
 
 	screenCenterX = (int)( blockSize * floor((width / 2) / blockSize));
 	screenCenterY = (int)( blockSize * floor((height / 2) / blockSize));
 	previewWidth = (int)( floor( width / blockSize ) / 2 );
 	previewHeight = (int)( floor( height / blockSize ) / 2 );
 
-	selectImage = loadImage("data/mine/select.png");
-
 	blockColors[0] = color(204, 255, 255);
 	blockColors[1] = color(128, 128, 128);
 	blockColors[2] = color(0, 204, 0);
 	blockColors[3] = color(153, 102, 51);
 	blockColors[7] = color(0, 0, 0);
-
 	blockColors[11] = color(255, 102, 0);
 	blockColors[14] = color(255, 255, 102);
 	blockColors[15] = color(255, 191, 128);
@@ -138,22 +152,30 @@ void setup()
 	blockColors[17] = color(109, 49, 18);
 	blockColors[18] = color(51, 153, 51);
 	blockColors[19] = color(255, 0, 0);
-
 	blockColors[56] = color(0, 204, 255);
 
-	GenerateWorld();
+	generateWorld();
 	blockCovered = arrWorld[playerX][playerY];
 	arrWorld[playerX][playerY] = 19;		// Place the player
+
+	arrInventory[0][0] = 2;
 };
 
 void draw()
 {
-	if(dpaWorking) { DumpPixelArrayWork(); };
+	if(dpaWorking) { dumpPixelArrayWork(); };
 
 	prevPlayerX = playerX;
 	prevPlayerY = playerY;
 
-	if(mousePressed)
+	/*
+	if(inventoryOpen)
+	{
+		image
+	}
+	*/
+
+	if(mousePressed && !inventoryOpen)
 	{
 		if( ( mouseButton == LEFT ) && mouseCanInteract() )
 		{
@@ -173,7 +195,7 @@ void draw()
 		}
 	}
 
-	if(keyPressed)
+	if(keyPressed && !inventoryOpen)
 	{
 		if( !bigPreview )
 		{
@@ -205,7 +227,7 @@ void draw()
 		arrWorld[playerX][playerY] = 19;
 	}
 
-	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) ) && (!bigPreview) )
+	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) ) && !bigPreview && !inventoryOpen )
 	{
 		mouseSelectedBlockX = mouseX - 299;
 		mouseSelectedBlockY = mouseY - 79;
@@ -213,17 +235,16 @@ void draw()
 		updateLittlePreview(mouseSelectedBlockX, mouseSelectedBlockY);
 	}
 
-	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) ) && (bigPreview) )
+	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) ) && bigPreview && !inventoryOpen )
 	{
 		updateSelector();
 	}
 
-	if( ( ( playerX != prevPlayerX ) || ( playerY != prevPlayerY ) || (forcePreviewUpdate == true) ) && (bigPreview) )
+	if( ( ( playerX != prevPlayerX ) || ( playerY != prevPlayerY ) || (forcePreviewUpdate == true) ) && bigPreview && !inventoryOpen )
 	{
 		forcePreviewUpdate = false;
 		updateBigPreview(playerX, playerY);
 		updateSelector();
-		//debugLog("Drew Big Preview.");
 	}
 
 	if(showFPS)
@@ -243,12 +264,12 @@ void keyReleased()
 {
 	if( key == '`' || key == '~' )
 	{
-		SetWebScreenSize();
+		setWebScreenSize();
 		forcePreviewUpdate = true;
 		if( !bigPreview )
 		{
-			IntroMessages();
-			DumpPixelArray(arrWorld);
+			littlePreviewMessages();
+			dumpPixelArray(arrWorld);
 		}
 	};
 
@@ -275,13 +296,13 @@ void keyReleased()
 			blockSize = 16;
 			screenScale = 2;
 			background(#FFFFFF);
-			IntroMessages();
+			littlePreviewMessages();
 
 			strokeWeight(1);
 			stroke(#000000);
 			point(250, 250);
 
-			DumpPixelArray(arrWorld);
+			dumpPixelArray(arrWorld);
 		}
 		else
 		{
@@ -293,6 +314,28 @@ void keyReleased()
 	if( key == '\\' || key == '|' )
 	{
 		showFPS = !showFPS;
+		forcePreviewUpdate = true;
+	}
+
+	if( key == 'p' || key == 'P' )
+	{
+		if(currentPlayer == 4)
+		{
+			currentPlayer = 1;
+		}
+		else
+		{
+			currentPlayer++;
+		}
+
+		if(myTextures)
+		{
+			loadMyTextures();
+		}
+		else
+		{
+			loadMinecraftTextures();
+		}
 		forcePreviewUpdate = true;
 	}
 
@@ -314,6 +357,20 @@ void keyReleased()
 	if( key == 'd' || key == 'D' )
 	{
 		wasdKeys[3] = false;
+	}
+
+	if( key == 'e' || key == 'E' )
+	{
+		inventoryOpen = !inventoryOpen;
+		if(inventoryOpen)
+		{
+			image(inventoryImage, inventoryTopLeftX, inventoryTopLeftY, inventoryWidth*inventryScale, inventoryHeight*inventryScale);
+			drawInventory();
+		}
+		else
+		{
+			forcePreviewUpdate = true;
+		}
 	}
 };
 
@@ -337,6 +394,27 @@ void keyPressed()
 	if( key == 'd' || key == 'D' )
 	{
 		wasdKeys[3] = true;
+	}
+}
+
+void drawInventory()
+{
+	for(int i = 0; i < 9; i++)
+	{
+		for(int j = 0; j < 3; j++)
+		{
+			if( arrInventory[i][j] != 0 )
+			{
+				image(blockImages[arrInventory[i][j]], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+174+(36*j+2), inventoryItemSize, inventoryItemSize);
+			}
+		}
+	}
+	for(int i = 0; i < 9; i++)
+	{
+		if( arrInventory[i][3] != 0 )
+		{
+			image(blockImages[arrInventory[i][3]], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+181+(36*3+2), inventoryItemSize, inventoryItemSize);
+		}
 	}
 }
 
@@ -412,7 +490,7 @@ void updateLittlePreview(int centerX, int centerY)
 	{
 		for(int j = playerY-1; j <= playerY+1; j++)
 		{
-			DumpPixel(arrWorld, i, j);
+			dumpPixel(arrWorld, i, j);
 		}
 	}
 
@@ -420,32 +498,6 @@ void updateLittlePreview(int centerX, int centerY)
 	{
 		for(int j = -16/screenScale; j <= 16/screenScale; j++)
 		{
-			/*
-			image(blockImages[0], 145 + blockSize*j, 400 + blockSize*i, blockSize, blockSize);
-			if( ( centerY+i >= 0 ) && ( centerX+j >= 0 ) && ( centerY+i < arrWorld[0].length ) && ( centerX+j < arrWorld.length ) )
-			{
-				if( arrWorld[centerX+j][centerY+i] == 19 )
-				{
-					pushMatrix();
-					image(blockImages[blockCovered], 145 + blockSize * j, 400 + blockSize * i, blockSize, blockSize);
-					if( !facingLeft )
-					{
-						translate(145 + blockSize * j, 400 + blockSize * i);
-					}
-					else
-					{
-						translate(145 + blockSize + blockSize * j, 400 + blockSize * i);
-						scale(-1, 1);
-					}
-					image(blockImages[19], 0, 0, blockSize, blockSize);
-					popMatrix();
-				}
-				else
-				{
-					image(blockImages[arrWorld[centerX+j][centerY+i]], 145 + blockSize * j, 400 + blockSize * i, blockSize, blockSize);
-				}
-			}
-			*/
 			drawBlock(centerX+j, centerY+i, 145 + blockSize*j, 400 + blockSize*i);
 		}
 	}
@@ -580,7 +632,6 @@ void loadMinecraftTextures()
 	blockImages[16] = loadImage("data/mc/coal_ore.png");
 	blockImages[17] = loadImage("data/mc/logs.png");
 	blockImages[18] = loadImage("data/mc/leaves.png");
-	blockImages[19] = loadImage("data/mc/player.png");
 
 	blockImages[56] = loadImage("data/mc/diamond_ore.png");
 
@@ -588,6 +639,19 @@ void loadMinecraftTextures()
 	grassBlocks[1] = loadImage("data/mc/grass-left.png");
 	grassBlocks[2] = loadImage("data/mc/grass-both.png");
 	grassBlocks[3] = loadImage("data/mc/grass-right.png");
+
+	if( ( currentPlayer == 1 ) || ( currentPlayer == 3 ) )
+	{
+		blockImages[19] = loadImage("data/mc/player1.png");
+	}
+	else if( ( currentPlayer == 2 ) || ( currentPlayer == 4 ) )
+	{
+		blockImages[19] = loadImage("data/mc/player2.png");
+	}
+	else
+	{
+		println("Unknown Player Image: " + currentPlayer);
+	}
 };
 
 void loadMyTextures()
@@ -604,14 +668,34 @@ void loadMyTextures()
 	blockImages[16] = loadImage("data/mine/coal_ore.png");
 	blockImages[17] = loadImage("data/mine/logs.png");
 	blockImages[18] = loadImage("data/mine/leaves.png");
-	blockImages[19] = loadImage("data/mine/player.png");
-
 	blockImages[56] = loadImage("data/mine/diamond_ore.png");
 
 	grassBlocks[0] = loadImage("data/mine/grass.png");
 	grassBlocks[1] = loadImage("data/mine/grass-left.png");
 	grassBlocks[2] = loadImage("data/mine/grass-both.png");
 	grassBlocks[3] = loadImage("data/mine/grass-right.png");
+
+	if( currentPlayer == 1 )
+	{
+		blockImages[19] = loadImage("data/mine/player1.png");
+	}
+	else if( currentPlayer == 2 )
+	{
+		blockImages[19] = loadImage("data/mine/player2.png");
+	}
+	else if( currentPlayer == 3 )
+	{
+		blockImages[19] = loadImage("data/mine/player3.png");
+	}
+	else if( currentPlayer == 4 )
+	{
+		blockImages[19] = loadImage("data/mine/player4.png");
+	}
+	else
+	{
+		println("Unknown Player Image: " + currentPlayer);
+	}
+
 };
 
 boolean arrayContains(int[] arrayToSearch, int contains)
@@ -626,7 +710,7 @@ boolean arrayContains(int[] arrayToSearch, int contains)
 	return false;
 }
 
-int CountInArray(int[][] toRead, int toFind)
+int countInArray(int[][] toRead, int toFind)
 {
 	int count = 0;
 	for(int i = 0; i < toRead.length; i++)
@@ -642,7 +726,7 @@ int CountInArray(int[][] toRead, int toFind)
 	return count;
 };
 
-int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius, int drawWith, int randomness)
+int[][] addRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius, int drawWith, int randomness)
 {
 	for (int j = 0; j <= radius; j++)
 	{
@@ -652,8 +736,8 @@ int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius
 		//int intLowerX = xCenter - Temp;
 		//int intUpperX = xCenter + Temp;
 
-		int intLowerX = xCenter - RandInt(Temp - randomness, Temp + randomness);
-		int intUpperX = xCenter + RandInt(Temp - randomness, Temp + randomness);
+		int intLowerX = xCenter - randInt(Temp - randomness, Temp + randomness);
+		int intUpperX = xCenter + randInt(Temp - randomness, Temp + randomness);
 
 		for (int k = intLowerX; k <= intUpperX; k++)
 		{
@@ -672,8 +756,8 @@ int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius
 		//int intLowerX = xCenter - Temp;
 		//int intUpperX = xCenter + Temp;
 
-		int intLowerX = xCenter - RandInt(Temp - randomness, Temp + randomness);
-		int intUpperX = xCenter + RandInt(Temp - randomness, Temp + randomness);
+		int intLowerX = xCenter - randInt(Temp - randomness, Temp + randomness);
+		int intUpperX = xCenter + randInt(Temp - randomness, Temp + randomness);
 
 		for (int k = intLowerX; k <= intUpperX; k++)
 		{
@@ -686,7 +770,7 @@ int[][] AddRoughCircle(int[][] arrayToEdit, int xCenter, int yCenter, int radius
 	return arrayToEdit;
 };
 
-void DumpPixelArrayWork()
+void dumpPixelArrayWork()
 {
 	for(int j = 0; j < dpaToDraw.length; j++)
 	{
@@ -704,20 +788,20 @@ void DumpPixelArrayWork()
 	}
 }
 
-void DumpPixelArray(int[][] toDraw)
+void dumpPixelArray(int[][] toDraw)
 {
 	dpaWorking = true;
 	dpaToDraw = toDraw;
 	dpaI = 0;
 };
 
-void DumpPixel(int[][] toDraw, int xToDraw, int yToDraw)
+void dumpPixel(int[][] toDraw, int xToDraw, int yToDraw)
 {
 	stroke(blockColors[toDraw[xToDraw][yToDraw]]);
 	point(300 + xToDraw, 80 + yToDraw);
 };
 
-void LogArray(int[][] toDraw)
+void logArray(int[][] toDraw)
 {
 	String row = "";
 	for(int i = 0; i < toDraw.length; i++)
@@ -731,7 +815,7 @@ void LogArray(int[][] toDraw)
 	}
 };
 
-void GenerateWorld()
+void generateWorld()
 {
 	// Add Base World
 	// Row  0         =  Bedrock:   7
@@ -760,7 +844,7 @@ void GenerateWorld()
 	// Add Surface Randomness
 	for(int i = 0; i <= arrWorld.length; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0, arrWorld.length), RandInt(195,200), RandInt(2,8), 3, 0);
+		arrWorld = addRoughCircle(arrWorld, randInt(0, arrWorld.length), randInt(195,200), randInt(2,8), 3, 0);
 	}
 
 	// Add Grass and Tress
@@ -771,15 +855,15 @@ void GenerateWorld()
 			if(arrWorld[i][j] == 3)
 			{
 				arrWorld[i][j] = 2;
-				if( RandInt(0,9) == 0 )
+				if( randInt(0,9) == 0 )
 				{
 					// Add a tree
 					arrWorld[i][j] = 3;
-					int treeHeight = RandInt(4,8);
-					int leafRadius = RandInt(3,5);
+					int treeHeight = randInt(4,8);
+					int leafRadius = randInt(3,5);
 					//debugLog("Adding tree.  Height: " + treeHeight + ", Leaves: " + leafRadius);
 
-					AddRoughCircle(arrWorld, i, j - treeHeight + leafRadius - 1, leafRadius, 18, 1);
+					arrWorld = addRoughCircle(arrWorld, i, j - treeHeight + leafRadius - 1, leafRadius, 18, 1);
 
 					for(int k = j - 1; k >= j - treeHeight; k--)
 					{
@@ -794,31 +878,31 @@ void GenerateWorld()
 	// Add Sub-Surface Randomness
 	for(int i = 0; i <= arrWorld.length; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(204,201), RandInt(1,6), 1, 2);
+		arrWorld = addRoughCircle(arrWorld, randInt(0,arrWorld.length), randInt(204,201), randInt(1,6), 1, 2);
 	}
 
 	// Add Coal
 	for(int i = 0; i <= arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(200,399), 3, 16, 1);
+		arrWorld = addRoughCircle(arrWorld, randInt(0,arrWorld.length), randInt(200,399), 3, 16, 1);
 	}
 
 	// Add Iron
 	for(int i = 0; i <= arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(200,399), 2, 15, 1);
+		arrWorld = addRoughCircle(arrWorld, randInt(0,arrWorld.length), randInt(200,399), 2, 15, 1);
 	}
 
 	// Add Diamonds
 	for(int i = 0; i <= .25 * arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(350,400), 1, 56, 1);
+		arrWorld = addRoughCircle(arrWorld, randInt(0,arrWorld.length), randInt(350,400), 1, 56, 1);
 	}
 
 	// Add Gold
 	for(int i = 0; i <= .3 * arrWorld.length / 4; i++)
 	{
-		arrWorld = AddRoughCircle(arrWorld, RandInt(0,arrWorld.length), RandInt(350,400), 1, 14, 1);
+		arrWorld = addRoughCircle(arrWorld, randInt(0,arrWorld.length), randInt(350,400), 1, 14, 1);
 	}
 
 	// Bedrock
@@ -827,26 +911,26 @@ void GenerateWorld()
 		arrWorld[i][400] = 7;
 	};
 
-	debugLog("Iron: " + CountInArray(arrWorld, 15));
-	debugLog("Coal: " + CountInArray(arrWorld, 16));
-	debugLog("Diamonds: " + CountInArray(arrWorld, 56));
-	debugLog("Gold: " + CountInArray(arrWorld, 14));
+	debugLog("Iron: " + countInArray(arrWorld, 15));
+	debugLog("Coal: " + countInArray(arrWorld, 16));
+	debugLog("Diamonds: " + countInArray(arrWorld, 56));
+	debugLog("Gold: " + countInArray(arrWorld, 14));
 
 	for(int i = 0; i < blockFlip.length; i++)
 	{
 		for(int j = 0; j < blockFlip[0].length; j++)
 		{
-			blockFlip[i][j] = RandBool();
+			blockFlip[i][j] = randBool();
 		}
 	}
 };
 
-int RandInt(int min, int max)
+int randInt(int min, int max)
 {
 	return round(random(min,max));
 };
 
-boolean RandBool()
+boolean randBool()
 {
 	if( round(random(1, 2)) == 1 )
 	{
@@ -866,18 +950,18 @@ void debugLog(String toPrint)
 	}
 };
 
-void IntroMessages()
+void littlePreviewMessages()
 {
 	stroke(#000000);
 	fill(#000000);
 	textSize(12);
-	text("Click on the canvas to focus sketch.  If the screen gets resized, press the ~ key to repaint. ", 20, 20);
+	text("This view is really just for debugging world generation.  But it is also still here because I don't want to delete Smiley :)", 20, 25);
 	text("Here is a smiley face image for testing purposes.", 20, 40);
 	text("Here is the Generated World:", 300, 70);
-	DrawTestImage();
+	drawSmiley();
 };
 
-void DrawTestImage()
+void drawSmiley()
 {
 	fill(233, 224, 71);
 	strokeWeight(7/2);
@@ -891,9 +975,8 @@ void DrawTestImage()
 	line(160/2, 180/2, 210/2, 135/2);
 	line(340/2, 180/2, 290/2, 135/2);
 
-	strokeWeight(1);		// This caused so many problems.  Bad Smiley. :(
+	strokeWeight(1);		// This caused so many problems.  Bad Smiley. :(  ):
 };
 
 // These are Garbage functions that get overwritten by WebCode if on web.
-void SetWebScreenSize() {};
-void WebSetup() {};
+void setWebScreenSize() {};

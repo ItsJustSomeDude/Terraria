@@ -1,7 +1,7 @@
 // This file gets loaded in the JS version, but not the PC version.
 // This is handled by the canvas tag in index.html.
 
-void SetWebScreenSize()
+void setWebScreenSize()
 {
 	size(window.innerWidth, window.innerHeight);
 
