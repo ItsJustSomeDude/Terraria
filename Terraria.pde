@@ -16,12 +16,14 @@
 			"data/mc/gold_ore.png",
 			"data/mc/logs.png",
 			"data/mc/leaves.png",
-			"data/mc/player1.png",
-			"data/mc/player2.png",
+			"data/mc/player1top.png",
+			"data/mc/player1bottom.png",
+			"data/mc/player2top.png",
+			"data/mc/player2bottom.png",
 			"data/mc/diamond_ore.png",
 			"data/mc/inventory.png",
 
-			"data/mine/select.png",
+			"data/select.png",
 			"data/mine/air.png",
 			"data/mine/dirt.png",
 			"data/mine/grass.png",
@@ -35,11 +37,30 @@
 			"data/mine/gold_ore.png",
 			"data/mine/logs.png",
 			"data/mine/leaves.png",
-			"data/mine/player1.png",
-			"data/mine/player2.png",
-			"data/mine/player3.png",
-			"data/mine/player4.png",
-			"data/mine/diamond_ore.png";
+			"data/mine/player1top.png",
+			"data/mine/player1bottom.png",
+			"data/mine/player2top.png",
+			"data/mine/player2bottom.png",
+			"data/mine/diamond_ore.png",
+
+			"data/mineHiRes/air.png",
+			"data/mineHiRes/dirt.png",
+			"data/mineHiRes/grass.png",
+			"data/mineHiRes/grass-left.png",
+			"data/mineHiRes/grass-right.png",
+			"data/mineHiRes/grass-both.png",
+			"data/mineHiRes/stone.png",
+			"data/mineHiRes/bedrock.png",
+			"data/mineHiRes/iron_ore.png",
+			"data/mineHiRes/coal_ore.png",
+			"data/mineHiRes/gold_ore.png",
+			"data/mineHiRes/logs.png",
+			"data/mineHiRes/leaves.png",
+			"data/mineHiRes/player1top.png",
+			"data/mineHiRes/player1bottom.png",
+			"data/mineHiRes/player2top.png",
+			"data/mineHiRes/player2bottom.png",
+			"data/mineHiRes/diamond_ore.png";
 */
 
 // That stuff up there was the directives.  They get ignored by PC, interpreted
@@ -53,18 +74,23 @@ int[][] arrWorld = new int[800][401];
 boolean[][] blockFlip = new boolean[800][401];
 PImage[] blockImages = new PImage[100];
 PImage[] grassBlocks = new PImage[4];
+PImage playerTop;
+PImage playerBottom;
 PImage selectImage;
 PImage inventoryImage;
 int mouseSelectedBlockX = 0;
 int mouseSelectedBlockY = 0;
-int blockSize = 32;
+int blockSize = 48;
+int blockSizeBig = 48;
 int screenScale = 4;
 boolean bigPreview = true;
 boolean myTextures = false;
+boolean hiResTextures = true;
 boolean forcePreviewUpdate = true;
 boolean mouseOverEdge = false;
 
-int blockCovered = 0;
+int blockCoveredTop = 0;
+int blockCoveredBottom = 0;
 int blockInHand = 0;
 int[] backgroundBlocks = {0, 17, 18};
 int[] selectorBlacklist = {7, 19};
@@ -117,7 +143,7 @@ int inventoryItemSize = 16;
 void settings()
 {
 	// This only runs on PC, Web ignores it.
-	size(800, 600);
+	size(1200, 800);
 	noSmooth();
 }
 
@@ -131,8 +157,8 @@ void setup()
 	fill(#000000);
 	debugLog("Program Start.");
 
-	loadMyTextures();
-	selectImage = loadImage("data/mine/select.png");
+	loadHiResTextures();
+	selectImage = loadImage("data/select.png");
 	inventoryImage = loadImage("data/mc/inventory.png");
 
 	screenCenterX = (int)( blockSize * floor((width / 2) / blockSize));
@@ -155,8 +181,10 @@ void setup()
 	blockColors[56] = color(0, 204, 255);
 
 	generateWorld();
-	blockCovered = arrWorld[playerX][playerY];
-	arrWorld[playerX][playerY] = 19;		// Place the player
+	blockCoveredTop = arrWorld[playerX][playerY];
+	blockCoveredBottom = arrWorld[playerX][playerY+1];
+	arrWorld[playerX][playerY] = 19;		// Place the player top
+	arrWorld[playerX][playerY+1] = 19;		// Place the player bottom
 
 	arrInventory[0][0] = 2;
 };
@@ -202,29 +230,40 @@ void draw()
 			forcePreviewUpdate = true;
 		}
 
-		arrWorld[playerX][playerY] = blockCovered;
+		arrWorld[playerX][playerY] = blockCoveredTop;
+		arrWorld[playerX][playerY+1] = blockCoveredBottom;
 
-		if( ( wasdKeys[0] ) && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
+		if( wasdKeys[0] && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
 		{
 			playerY--;
 		}
-		if( ( wasdKeys[1] ) && (playerX != 0) && ( arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][playerY]) ) )
+		if( wasdKeys[1] )
 		{
 			facingLeft = true;
-			playerX--;
+			forcePreviewUpdate = true;
+			if( (playerX != 0) && arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][playerY]) && arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][max(playerY + 1, 0)]) )
+			{
+				playerX--;
+			}
 		}
-		if( ( wasdKeys[2] ) && (playerY != arrWorld[0].length - 1) && ( arrayContains(backgroundBlocks, arrWorld[playerX][min(playerY + 1, arrWorld[0].length)]) ) )
+		if( wasdKeys[2] && (playerY+1 != arrWorld[0].length - 1) && ( arrayContains(backgroundBlocks, arrWorld[playerX][min(playerY + 2, arrWorld[0].length)]) ) )
 		{
 			playerY++;
 		}
-		if( ( wasdKeys[3] ) && (playerX != arrWorld.length - 1) && ( arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][playerY]) ) )
+		if( wasdKeys[3] )
 		{
 			facingLeft = false;
-			playerX++;
+			forcePreviewUpdate = true;
+			if( (playerX != arrWorld.length - 1) && arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][playerY]) && arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][min(playerY + 1, arrWorld[0].length)]) )
+			{
+				playerX++;
+			}
 		}
 		//debugLog(playerX + ", " + playerY);
-		blockCovered = arrWorld[playerX][playerY];
+		blockCoveredTop = arrWorld[playerX][playerY];
+		blockCoveredBottom = arrWorld[playerX][playerY+1];
 		arrWorld[playerX][playerY] = 19;
+		arrWorld[playerX][playerY+1] = 19;
 	}
 
 	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) || (forcePreviewUpdate == true) ) && !bigPreview && !inventoryOpen )
@@ -306,9 +345,23 @@ void keyReleased()
 		}
 		else
 		{
-			blockSize = 32;
+			blockSize = blockSizeBig;
 			screenScale = 4;
 		}
+	}
+
+	if( key == 'h' || key == 'H' )
+	{
+		hiResTextures = !hiResTextures;
+		if(hiResTextures)
+		{
+			loadHiResTextures();
+		}
+		else
+		{
+			loadMyTextures();
+		}
+		forcePreviewUpdate = true;
 	}
 
 	if( key == '\\' || key == '|' )
@@ -488,7 +541,7 @@ void updateLittlePreview(int centerX, int centerY)
 {
 	for(int i = playerX-1; i <= playerX+1; i++)
 	{
-		for(int j = playerY-1; j <= playerY+1; j++)
+		for(int j = playerY-1; j <= playerY+2; j++)
 		{
 			dumpPixel(arrWorld, i, j);
 		}
@@ -505,51 +558,6 @@ void updateLittlePreview(int centerX, int centerY)
 
 void updateBigPreview(int centerX, int centerY)
 {
-	/*
-	for(int i = -previewHeight; i <= previewHeight; i++)
-	{
-		for(int j = -previewWidth; j <= previewWidth; j++)
-		{
-			image(blockImages[0], screenCenterX + blockSize*j, screenCenterY + blockSize*i, blockSize, blockSize);
-
-			if( ( centerX+j >= 0 ) && ( centerX+j < arrWorld.length ) && ( centerY+i >= 0 ) && ( centerY+i < arrWorld[0].length ) )
-			{
-				if( arrWorld[centerX+j][centerY+i] == 19 )
-				{
-					pushMatrix();
-					image(blockImages[blockCovered], screenCenterX + blockSize * j, screenCenterY + blockSize * i, blockSize, blockSize);
-					if( !facingLeft )
-					{
-						translate(screenCenterX + blockSize * j, screenCenterY + blockSize * i);
-					}
-					else
-					{
-						translate(screenCenterX + blockSize + blockSize * j, screenCenterY + blockSize * i);
-						scale(-1, 1);
-					}
-					image(blockImages[19], 0, 0, blockSize, blockSize);
-					popMatrix();
-				}
-				else
-				{
-					pushMatrix();
-					if( blockFlip[centerX+j][centerY+i] )
-					{
-						translate(screenCenterX + blockSize * j, screenCenterY + blockSize * i);
-					}
-					else
-					{
-						translate(screenCenterX + blockSize + blockSize * j, screenCenterY + blockSize * i);
-						scale(-1, 1);
-					}
-					image(blockImages[arrWorld[centerX+j][centerY+i]], 0, 0, blockSize, blockSize);
-					popMatrix();
-				}
-			}
-		}
-	}
-	*/
-
 	for(int i = -previewHeight; i <= previewHeight+1; i++)
 	{
 		for(int j = -previewWidth; j <= previewWidth+1; j++)
@@ -587,7 +595,16 @@ void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 		else if( arrWorld[matrixX][matrixY] == 19 )
 		{
 			pushMatrix();
-			image(blockImages[blockCovered], screenX, screenY, blockSize, blockSize);
+
+			if( ( matrixX == playerX ) && ( matrixY == playerY ) )
+			{
+				image(blockImages[blockCoveredTop], screenX, screenY, blockSize, blockSize);
+			}
+			else
+			{
+				image(blockImages[blockCoveredBottom], screenX, screenY, blockSize, blockSize);
+			}
+
 			if( !facingLeft )
 			{
 				translate(screenX, screenY);
@@ -597,7 +614,15 @@ void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 				translate(screenX + blockSize, screenY);
 				scale(-1, 1);
 			}
-			image(blockImages[19], 0, 0, blockSize, blockSize);
+
+			if( ( matrixX == playerX ) && ( matrixY == playerY ) )
+			{
+				image(playerTop, 0, 0, blockSize, blockSize);
+			}
+			else
+			{
+				image(playerBottom, 0, 0, blockSize, blockSize);
+			}
 			popMatrix();
 		}
 		else
@@ -620,6 +645,7 @@ void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 
 void loadMinecraftTextures()
 {
+	hiResTextures = false;
 	myTextures = false;
 	blockImages[0] = loadImage("data/mc/air.png");
 	blockImages[1] = loadImage("data/mc/stone.png");
@@ -642,11 +668,13 @@ void loadMinecraftTextures()
 
 	if( ( currentPlayer == 1 ) || ( currentPlayer == 3 ) )
 	{
-		blockImages[19] = loadImage("data/mc/player1.png");
+		playerTop = loadImage("data/mc/player1top.png");
+		playerBottom = loadImage("data/mc/player1bottom.png");
 	}
 	else if( ( currentPlayer == 2 ) || ( currentPlayer == 4 ) )
 	{
-		blockImages[19] = loadImage("data/mc/player2.png");
+		playerTop = loadImage("data/mc/player2.png");
+		playerBottom = loadImage("data/mc/player2.png");
 	}
 	else
 	{
@@ -656,6 +684,7 @@ void loadMinecraftTextures()
 
 void loadMyTextures()
 {
+	hiResTextures = false;
 	myTextures = true;
 	blockImages[0] = loadImage("data/mine/air.png");
 	blockImages[1] = loadImage("data/mine/stone.png");
@@ -677,25 +706,76 @@ void loadMyTextures()
 
 	if( currentPlayer == 1 )
 	{
-		blockImages[19] = loadImage("data/mine/player1.png");
+		playerTop = loadImage("data/mine/player1top.png");
+		playerBottom = loadImage("data/mine/player1bottom.png");
 	}
 	else if( currentPlayer == 2 )
 	{
-		blockImages[19] = loadImage("data/mine/player2.png");
+		playerTop = loadImage("data/mine/player2top.png");
+		playerBottom = loadImage("data/mine/player2bottom.png");
 	}
 	else if( currentPlayer == 3 )
 	{
-		blockImages[19] = loadImage("data/mine/player3.png");
+		playerTop = loadImage("data/mine/player2top.png");
+		playerBottom = loadImage("data/mine/player2bottom.png");
 	}
 	else if( currentPlayer == 4 )
 	{
-		blockImages[19] = loadImage("data/mine/player4.png");
+		playerTop = loadImage("data/mine/player2top.png");
+		playerBottom = loadImage("data/mine/player2bottom.png");
 	}
 	else
 	{
 		println("Unknown Player Image: " + currentPlayer);
 	}
+};
 
+void loadHiResTextures()
+{
+	hiResTextures = true;
+	myTextures = true;
+	blockImages[0] = loadImage("data/mineHiRes/air.png");
+	blockImages[1] = loadImage("data/mineHiRes/stone.png");
+	blockImages[2] = loadImage("data/mineHiRes/grass.png");
+	blockImages[3] = loadImage("data/mineHiRes/dirt.png");
+	blockImages[7] = loadImage("data/mineHiRes/bedrock.png");
+
+	blockImages[14] = loadImage("data/mineHiRes/gold_ore.png");
+	blockImages[15] = loadImage("data/mineHiRes/iron_ore.png");
+	blockImages[16] = loadImage("data/mineHiRes/coal_ore.png");
+	blockImages[17] = loadImage("data/mineHiRes/logs.png");
+	blockImages[18] = loadImage("data/mineHiRes/leaves.png");
+	blockImages[56] = loadImage("data/mineHiRes/diamond_ore.png");
+
+	grassBlocks[0] = loadImage("data/mineHiRes/grass.png");
+	grassBlocks[1] = loadImage("data/mineHiRes/grass-left.png");
+	grassBlocks[2] = loadImage("data/mineHiRes/grass-both.png");
+	grassBlocks[3] = loadImage("data/mineHiRes/grass-right.png");
+
+	if( currentPlayer == 1 )
+	{
+		playerTop = loadImage("data/mineHiRes/player1top.png");
+		playerBottom = loadImage("data/mineHiRes/player1bottom.png");
+	}
+	else if( currentPlayer == 2 )
+	{
+		playerTop = loadImage("data/mineHiRes/player2top.png");
+		playerBottom = loadImage("data/mineHiRes/player2bottom.png");
+	}
+	else if( currentPlayer == 3 )
+	{
+		playerTop = loadImage("data/mineHiRes/player2top.png");
+		playerBottom = loadImage("data/mineHiRes/player2bottom.png");
+	}
+	else if( currentPlayer == 4 )
+	{
+		playerTop = loadImage("data/mineHiRes/player2top.png");
+		playerBottom = loadImage("data/mineHiRes/player2bottom.png");
+	}
+	else
+	{
+		println("Unknown Player Image: " + currentPlayer);
+	}
 };
 
 boolean arrayContains(int[] arrayToSearch, int contains)
