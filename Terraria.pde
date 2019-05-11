@@ -41,6 +41,10 @@
 			"data/mine/player1bottom.png",
 			"data/mine/player2top.png",
 			"data/mine/player2bottom.png",
+			"data/mine/player3top.png",
+			"data/mine/player3bottom.png",
+			"data/mine/player4top.png",
+			"data/mine/player4bottom.png",
 			"data/mine/diamond_ore.png",
 
 			"data/mineHiRes/air.png",
@@ -60,6 +64,10 @@
 			"data/mineHiRes/player1bottom.png",
 			"data/mineHiRes/player2top.png",
 			"data/mineHiRes/player2bottom.png",
+			"data/mineHiRes/player3top.png",
+			"data/mineHiRes/player3bottom.png",
+			"data/mineHiRes/player4top.png",
+			"data/mineHiRes/player4bottom.png",
 			"data/mineHiRes/diamond_ore.png";
 */
 
@@ -131,7 +139,7 @@ int dpaI = 0;
 color[] blockColors = new color[100];
 
 // inventory stuff
-int[][] arrInventory = new int[9][4];
+int[][][] arrInventory = new int[9][4][2];
 boolean inventoryOpen = false;
 int inventoryWidth = 176;
 int inventoryHeight = 166;
@@ -185,8 +193,6 @@ void setup()
 	blockCoveredBottom = arrWorld[playerX][playerY+1];
 	arrWorld[playerX][playerY] = 19;		// Place the player top
 	arrWorld[playerX][playerY+1] = 19;		// Place the player bottom
-
-	arrInventory[0][0] = 2;
 };
 
 void draw()
@@ -315,13 +321,13 @@ void keyReleased()
 	if( key == '+' || key == '=' )
 	{
 		forcePreviewUpdate = true;
-		if( myTextures )
+		if(myTextures)
 		{
 			loadMinecraftTextures();
 		}
 		else
 		{
-			loadMyTextures();
+			loadHiResTextures();
 		}
 	}
 
@@ -381,7 +387,11 @@ void keyReleased()
 			currentPlayer++;
 		}
 
-		if(myTextures)
+		if(hiResTextures)
+		{
+			loadHiResTextures();
+		}
+		else if(myTextures)
 		{
 			loadMyTextures();
 		}
@@ -390,6 +400,16 @@ void keyReleased()
 			loadMinecraftTextures();
 		}
 		forcePreviewUpdate = true;
+	}
+
+	if( key == '[' || key == '{' )
+	{
+		addToInventory(1, 3);
+	}
+
+	if( key == ']' || key == '}' )
+	{
+		addToInventory(2, 5);
 	}
 
 	if( key == 'w' || key == 'W' )
@@ -448,7 +468,35 @@ void keyPressed()
 	{
 		wasdKeys[3] = true;
 	}
-}
+};
+
+boolean addToInventory(int idToAdd, int numberToAdd)
+{
+	for( int i = 0; i < arrInventory.length; i++ )
+	{
+		for( int j = 0; j < arrInventory[0].length; j++ )
+		{
+			if( arrInventory[i][j][0] == idToAdd )
+			{
+				arrInventory[i][j][1] += numberToAdd;
+				return;
+			}
+		}
+	}
+
+	for( int i = 0; i < arrInventory.length; i++ )
+	{
+		for( int j = 0; j < arrInventory[0].length; j++ )
+		{
+			if( arrInventory[i][j][0] == 0 )
+			{
+				arrInventory[i][j][0] = idToAdd;
+				arrInventory[i][j][1] += numberToAdd;
+				return;
+			}
+		}
+	}
+};
 
 void drawInventory()
 {
@@ -456,20 +504,22 @@ void drawInventory()
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			if( arrInventory[i][j] != 0 )
+			if( arrInventory[i][j][0] != 0 )
 			{
-				image(blockImages[arrInventory[i][j]], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+174+(36*j+2), inventoryItemSize, inventoryItemSize);
+				image(blockImages[arrInventory[i][j][0]], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+174+(36*j+2), inventoryItemSize, inventoryItemSize);
+				text(arrInventory[i][j][1], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+174+(36*j+2));
 			}
 		}
 	}
 	for(int i = 0; i < 9; i++)
 	{
-		if( arrInventory[i][3] != 0 )
+		if( arrInventory[i][3][0] != 0 )
 		{
-			image(blockImages[arrInventory[i][3]], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+181+(36*3+2), inventoryItemSize, inventoryItemSize);
+			image(blockImages[arrInventory[i][3][0]], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+181+(36*3+2), inventoryItemSize, inventoryItemSize);
+			text(arrInventory[i][3][1], inventoryTopLeftX+22+(36*i+2), inventoryTopLeftY+181+(36*3+2));
 		}
 	}
-}
+};
 
 boolean mouseCanInteract()
 {
@@ -673,8 +723,8 @@ void loadMinecraftTextures()
 	}
 	else if( ( currentPlayer == 2 ) || ( currentPlayer == 4 ) )
 	{
-		playerTop = loadImage("data/mc/player2.png");
-		playerBottom = loadImage("data/mc/player2.png");
+		playerTop = loadImage("data/mc/player2top.png");
+		playerBottom = loadImage("data/mc/player2bottom.png");
 	}
 	else
 	{
@@ -716,13 +766,13 @@ void loadMyTextures()
 	}
 	else if( currentPlayer == 3 )
 	{
-		playerTop = loadImage("data/mine/player2top.png");
-		playerBottom = loadImage("data/mine/player2bottom.png");
+		playerTop = loadImage("data/mine/player3top.png");
+		playerBottom = loadImage("data/mine/player3bottom.png");
 	}
 	else if( currentPlayer == 4 )
 	{
-		playerTop = loadImage("data/mine/player2top.png");
-		playerBottom = loadImage("data/mine/player2bottom.png");
+		playerTop = loadImage("data/mine/player4top.png");
+		playerBottom = loadImage("data/mine/player4bottom.png");
 	}
 	else
 	{
@@ -764,13 +814,13 @@ void loadHiResTextures()
 	}
 	else if( currentPlayer == 3 )
 	{
-		playerTop = loadImage("data/mineHiRes/player2top.png");
-		playerBottom = loadImage("data/mineHiRes/player2bottom.png");
+		playerTop = loadImage("data/mineHiRes/player3top.png");
+		playerBottom = loadImage("data/mineHiRes/player3bottom.png");
 	}
 	else if( currentPlayer == 4 )
 	{
-		playerTop = loadImage("data/mineHiRes/player2top.png");
-		playerBottom = loadImage("data/mineHiRes/player2bottom.png");
+		playerTop = loadImage("data/mineHiRes/player4top.png");
+		playerBottom = loadImage("data/mineHiRes/player4bottom.png");
 	}
 	else
 	{
@@ -877,8 +927,11 @@ void dumpPixelArray(int[][] toDraw)
 
 void dumpPixel(int[][] toDraw, int xToDraw, int yToDraw)
 {
-	stroke(blockColors[toDraw[xToDraw][yToDraw]]);
-	point(300 + xToDraw, 80 + yToDraw);
+	if( ( xToDraw >= 0 ) && ( yToDraw >= 0 ) && ( xToDraw < arrWorld.length ) && ( yToDraw < arrWorld[0].length ) )
+	{
+		stroke(blockColors[toDraw[xToDraw][yToDraw]]);
+		point(300 + xToDraw, 80 + yToDraw);
+	}
 };
 
 void logArray(int[][] toDraw)
