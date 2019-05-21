@@ -24,6 +24,8 @@
 			"data/mc/inventory.png",
 
 			"data/select.png",
+			"data/basicgui.png",
+
 			"data/mine/air.png",
 			"data/mine/dirt.png",
 			"data/mine/grass.png",
@@ -86,6 +88,7 @@ PImage playerTop;
 PImage playerBottom;
 PImage selectImage;
 PImage inventoryImage;
+PImage basicGUI;
 int mouseSelectedBlockX = 0;
 int mouseSelectedBlockY = 0;
 int blockSize = 48;
@@ -96,10 +99,14 @@ boolean myTextures = false;
 boolean hiResTextures = true;
 boolean forcePreviewUpdate = true;
 boolean mouseOverEdge = false;
+int drawPixelOffsetX = 0;
+int drawPixelOffsetY = 0;
+int drawShiftBy = 12;		// Make sure this is divisible by blockSize.
 
 int blockCoveredTop = 0;
 int blockCoveredBottom = 0;
 int blockInHand = 0;
+int reachLength = 6;
 int[] backgroundBlocks = {0, 17, 18};
 int[] selectorBlacklist = {7, 19};
 int[] selectorWhitelist = {0, 19};
@@ -138,6 +145,13 @@ int dpaI = 0;
 // Color Data
 color[] blockColors = new color[100];
 
+// Help screen
+int helpWidth = 640;
+int helpHeight = 400;
+int helpTopLeftX = 50;
+int helpTopLeftY = 50;
+boolean helpOpen = false;
+
 // inventory stuff
 int[][][] arrInventory = new int[9][4][2];
 boolean inventoryOpen = false;
@@ -168,6 +182,7 @@ void setup()
 	loadHiResTextures();
 	selectImage = loadImage("data/select.png");
 	inventoryImage = loadImage("data/mc/inventory.png");
+	basicGUI = loadImage("data/basicgui.png");
 
 	screenCenterX = (int)( blockSize * floor((width / 2) / blockSize));
 	screenCenterY = (int)( blockSize * floor((height / 2) / blockSize));
@@ -199,17 +214,40 @@ void draw()
 {
 	if(dpaWorking) { dumpPixelArrayWork(); };
 
+	if( ( ( drawPixelOffsetX != 0 ) || ( drawPixelOffsetY != 0 ) ) && bigPreview )
+	{
+		if(drawPixelOffsetX > 0)
+		{
+			drawPixelOffsetX -= drawShiftBy;
+		}
+
+		if(drawPixelOffsetX < 0)
+		{
+			drawPixelOffsetX += drawShiftBy;
+		}
+
+		if(drawPixelOffsetY > 0)
+		{
+			drawPixelOffsetY -= drawShiftBy;
+		}
+
+		if(drawPixelOffsetY < 0)
+		{
+			drawPixelOffsetY += drawShiftBy;
+		}
+
+		updateBigPreview(playerX, playerY);
+
+		if( ( drawPixelOffsetX == 0 ) && ( drawPixelOffsetY == 0 ) )
+		{
+			updateSelector();
+		}
+	}
+
 	prevPlayerX = playerX;
 	prevPlayerY = playerY;
 
-	/*
-	if(inventoryOpen)
-	{
-		image
-	}
-	*/
-
-	if(mousePressed && !inventoryOpen)
+	if( mousePressed && !inventoryOpen )
 	{
 		if( ( mouseButton == LEFT ) && mouseCanInteract() )
 		{
@@ -222,14 +260,14 @@ void draw()
 			blockInHand = arrWorld[mouseBlockX][mouseBlockY];
 		}
 
-		if( ( mouseButton == RIGHT ) && mouseCanInteract() )
+		if( ( mouseButton == RIGHT ) && mouseCanInteract() && ( arrWorld[mouseBlockX][mouseBlockY] == 0 ) )
 		{
 			arrWorld[mouseBlockX][mouseBlockY] = blockInHand;
 			forcePreviewUpdate = true;
 		}
 	}
 
-	if(keyPressed && !inventoryOpen)
+	if(keyPressed && !inventoryOpen && (drawPixelOffsetX == 0) && ( drawPixelOffsetY == 0 ) )
 	{
 		if( !bigPreview )
 		{
@@ -241,30 +279,35 @@ void draw()
 
 		if( wasdKeys[0] && (playerY != 0) && ( arrayContains(backgroundBlocks, arrWorld[playerX][max(playerY - 1, 0)]) ) )
 		{
+			drawPixelOffsetY = -blockSize;
 			playerY--;
 		}
 		if( wasdKeys[1] )
 		{
 			facingLeft = true;
-			forcePreviewUpdate = true;
+			//forcePreviewUpdate = true;
 			if( (playerX != 0) && arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][playerY]) && arrayContains(backgroundBlocks, arrWorld[max(playerX - 1, 0)][max(playerY + 1, 0)]) )
 			{
+				drawPixelOffsetX = -blockSize;
 				playerX--;
 			}
 		}
 		if( wasdKeys[2] && (playerY+1 != arrWorld[0].length - 1) && ( arrayContains(backgroundBlocks, arrWorld[playerX][min(playerY + 2, arrWorld[0].length)]) ) )
 		{
+			drawPixelOffsetY = blockSize;
 			playerY++;
 		}
 		if( wasdKeys[3] )
 		{
 			facingLeft = false;
-			forcePreviewUpdate = true;
+			//forcePreviewUpdate = true;
 			if( (playerX != arrWorld.length - 1) && arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][playerY]) && arrayContains(backgroundBlocks, arrWorld[min(playerX + 1, arrWorld.length)][min(playerY + 1, arrWorld[0].length)]) )
 			{
+				drawPixelOffsetX = blockSize;
 				playerX++;
 			}
 		}
+
 		//debugLog(playerX + ", " + playerY);
 		blockCoveredTop = arrWorld[playerX][playerY];
 		blockCoveredBottom = arrWorld[playerX][playerY+1];
@@ -280,16 +323,15 @@ void draw()
 		updateLittlePreview(mouseSelectedBlockX, mouseSelectedBlockY);
 	}
 
-	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) ) && bigPreview && !inventoryOpen )
+	if( ( ( mouseX != pmouseX ) || ( mouseY != pmouseY ) ) && bigPreview && !inventoryOpen && ( drawPixelOffsetX == 0 ) && ( drawPixelOffsetY == 0 ) )
 	{
 		updateSelector();
 	}
 
-	if( ( ( playerX != prevPlayerX ) || ( playerY != prevPlayerY ) || (forcePreviewUpdate == true) ) && bigPreview && !inventoryOpen )
+	if( (forcePreviewUpdate == true) && bigPreview && !inventoryOpen )
 	{
-		forcePreviewUpdate = false;
 		updateBigPreview(playerX, playerY);
-		updateSelector();
+		forcePreviewUpdate = false;
 	}
 
 	if(showFPS)
@@ -316,6 +358,11 @@ void keyReleased()
 			littlePreviewMessages();
 			dumpPixelArray(arrWorld);
 		}
+	};
+
+	if( key == 'r' || key == 'R' )
+	{
+		blockInHand = arrWorld[mouseBlockX][mouseBlockY];
 	};
 
 	if( key == '+' || key == '=' )
@@ -356,7 +403,7 @@ void keyReleased()
 		}
 	}
 
-	if( key == 'h' || key == 'H' )
+	if( key == 't' || key == 'T' )
 	{
 		hiResTextures = !hiResTextures;
 		if(hiResTextures)
@@ -368,6 +415,21 @@ void keyReleased()
 			loadMyTextures();
 		}
 		forcePreviewUpdate = true;
+	}
+
+	if( key == 'h' || key == 'H' )
+	{
+		helpOpen = !helpOpen;
+		if(helpOpen)
+		{
+			drawHelpScreen();
+			noLoop();
+		}
+		else
+		{
+			loop();
+			forcePreviewUpdate = true;
+		}
 	}
 
 	if( key == '\\' || key == '|' )
@@ -449,28 +511,50 @@ void keyReleased()
 
 void keyPressed()
 {
-	if( key == 'w' || key == 'W' )
+	if( ( key == 'w' || key == 'W' ) && !wasdKeys[2] )
 	{
 		wasdKeys[0] = true;
 	}
 
-	if( key == 'a' || key == 'A' )
+	if( ( key == 'a' || key == 'A' ) && !wasdKeys[3] )
 	{
 		wasdKeys[1] = true;
 	}
 
-	if( key == 's' || key == 'S' )
+	if( ( key == 's' || key == 'S' ) && !wasdKeys[0] )
 	{
 		wasdKeys[2] = true;
 	}
 
-	if( key == 'd' || key == 'D' )
+	if( ( key == 'd' || key == 'D' ) && !wasdKeys[1] )
 	{
 		wasdKeys[3] = true;
 	}
 };
 
-boolean addToInventory(int idToAdd, int numberToAdd)
+void drawHelpScreen()
+{
+	image(basicGUI, helpTopLeftX, helpTopLeftY);
+	textSize(15);
+	String[] helpText = {"Welcome to the help screen!",
+						 "Press H to close it.",
+						 "Keyboard Controls:",
+						 "Use the W/A/S/D keys to move your player around.",
+						 "Press P to change what player you are.",
+						 "Mouse Controls:",
+						 "Move the mouse to move the selector box.",
+						 "Left click to break the block under the selector.",
+						 "Push the scroll wheel while on a block to put that block in your hand.",
+						 "(If you don't have a mouse with scroll wheel, you can also press R on the keyboard.)",
+						 "After you have picked a block with the middle button, place it in an empty space with right click.",
+						 "Enjoy the \"game!\""};
+	for(int i = 0; i < helpText.length; i++)
+	{
+		text(helpText[i], helpTopLeftY+5, helpTopLeftX+5+16+(16*i));
+	}
+};
+
+void addToInventory(int idToAdd, int numberToAdd)
 {
 	for( int i = 0; i < arrInventory.length; i++ )
 	{
@@ -527,6 +611,10 @@ boolean mouseCanInteract()
 	{
 		return false;
 	}
+	else if( ( mouseBlockX >= playerX+reachLength ) || ( mouseBlockX <= playerX-reachLength ) || ( mouseBlockY >= playerY+reachLength ) || ( mouseBlockY <= playerY-reachLength ) )
+	{
+		return false;
+	}
 	else if( !arrayContains(selectorWhitelist, arrWorld[mouseBlockX][mouseBlockY]) || !arrayContains(selectorWhitelist, arrWorld[min(mouseBlockX+1, arrWorld.length-1)][mouseBlockY]) || !arrayContains(selectorWhitelist, arrWorld[max(0, mouseBlockX-1)][mouseBlockY]) || !arrayContains(selectorWhitelist, arrWorld[mouseBlockX][min(mouseBlockY+1, arrWorld[0].length-1)]) || !arrayContains(selectorWhitelist, arrWorld[mouseBlockX][max(mouseBlockY-1, 0)]) )
 	{
 		return true;
@@ -539,28 +627,9 @@ boolean mouseCanInteract()
 
 void updateSelector()
 {
-	if( ( playerX == playerXPrevSelector ) && ( playerY == playerYPrevSelector ) && mouseCanInteract() )
+	if( ( playerX == playerXPrevSelector ) && ( playerY == playerYPrevSelector ) )
 	{
 		drawBlock(mouseBlockX, mouseBlockY, selectorX, selectorY);
-		/*
-		pushMatrix();
-		if( blockFlip[mouseBlockX][mouseBlockY] )
-		{
-			translate(selectorX, selectorY);
-		}
-		else
-		{
-			translate(selectorX + blockSize, selectorY);
-			scale(-1, 1);
-		}
-
-		if( mouseCanInteract() )
-		{
-			image(blockImages[0], 0, 0, blockSize, blockSize);
-			image(blockImages[arrWorld[mouseBlockX][mouseBlockY]], 0, 0, blockSize, blockSize);
-		}
-		popMatrix();
-		*/
 	}
 
 	playerXPrevSelector = playerX;
@@ -608,17 +677,41 @@ void updateLittlePreview(int centerX, int centerY)
 
 void updateBigPreview(int centerX, int centerY)
 {
+	int playerScreenX = 0;
+	int playerScreenY = 0;
 	for(int i = -previewHeight; i <= previewHeight+1; i++)
 	{
-		for(int j = -previewWidth; j <= previewWidth+1; j++)
+		for(int j = -previewWidth - 1; j <= previewWidth+1; j++)
 		{
-			drawBlock(centerX+j, centerY+i, screenCenterX + blockSize * j, screenCenterY + blockSize * i);
+			if( arrWorld[constrain(centerX+j, 0, arrWorld.length-1)][centerY+i] != 19 )
+			{
+				drawBlock(centerX+j, centerY+i, screenCenterX + blockSize * j, screenCenterY + blockSize * i);
+			}
+			else
+			{
+				playerScreenX = screenCenterX + blockSize * j;
+				playerScreenY = screenCenterY + blockSize * i;
+			}
 		}
+	}
+
+	if(drawPixelOffsetY <= 0)
+	{
+		drawBlock(playerX, playerY+1, playerScreenX, playerScreenY);
+		drawBlock(playerX, playerY, playerScreenX, playerScreenY - blockSize);
+	}
+	else
+	{
+		drawBlock(playerX, playerY, playerScreenX, playerScreenY - blockSize);
+		drawBlock(playerX, playerY+1, playerScreenX, playerScreenY);
 	}
 };
 
 void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 {
+	pushMatrix();
+	translate(drawPixelOffsetX, drawPixelOffsetY);
+
 	image(blockImages[0], screenX, screenY, blockSize, blockSize);
 
 	if( ( matrixX >= 0 ) && ( matrixX < arrWorld.length ) && ( matrixY >= 0 ) && ( matrixY < arrWorld[0].length ) )
@@ -645,24 +738,45 @@ void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 		else if( arrWorld[matrixX][matrixY] == 19 )
 		{
 			pushMatrix();
-
 			if( ( matrixX == playerX ) && ( matrixY == playerY ) )
 			{
-				image(blockImages[blockCoveredTop], screenX, screenY, blockSize, blockSize);
+				if( blockFlip[matrixX][matrixY] )
+				{
+					translate(screenX, screenY);
+				}
+				else
+				{
+					translate(screenX + blockSize, screenY);
+					scale(-1, 1);
+				}
+				image(blockImages[blockCoveredTop], 0, 0, blockSize, blockSize);
 			}
 			else
 			{
-				image(blockImages[blockCoveredBottom], screenX, screenY, blockSize, blockSize);
+				if( blockFlip[matrixX][matrixY] )
+				{
+					translate(screenX, screenY);
+				}
+				else
+				{
+					translate(screenX + blockSize, screenY);
+					scale(-1, 1);
+				}
+				image(blockImages[blockCoveredBottom], 0, 0, blockSize, blockSize);
 			}
+			popMatrix();
 
+			translate(-drawPixelOffsetX, -drawPixelOffsetY);
 			if( !facingLeft )
 			{
+				//This works flawlessly, drawPixelOffsetX is positive
 				translate(screenX, screenY);
 			}
 			else
 			{
+				// This does not.  drawPixelOffsetX is negative.
 				translate(screenX + blockSize, screenY);
-				scale(-1, 1);
+				scale(-1, 1);    // Flip the block
 			}
 
 			if( ( matrixX == playerX ) && ( matrixY == playerY ) )
@@ -673,11 +787,9 @@ void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 			{
 				image(playerBottom, 0, 0, blockSize, blockSize);
 			}
-			popMatrix();
 		}
 		else
 		{
-			pushMatrix();
 			if( blockFlip[matrixX][matrixY] )
 			{
 				translate(screenX, screenY);
@@ -688,10 +800,55 @@ void drawBlock(int matrixX, int matrixY, int screenX, int screenY)
 				scale(-1, 1);
 			}
 			image(blockImages[arrWorld[matrixX][matrixY]], 0, 0, blockSize, blockSize);
-			popMatrix();
 		}
 	}
+	popMatrix();
 };
+
+void shiftHorizontal(int shiftBy)
+{
+	loadPixels();
+
+	color[][] newPixels = new color[width][height];
+	color[][] newPixels2 = new color[width][height];
+
+	int k = 0;
+	for(int i = 0; i < width; i++)
+	{
+		for(int j = 0; j < height; j++)
+		{
+			newPixels[i][j] = pixels[k];
+			k++;
+		}
+	}
+
+	for (int row = 0; row < newPixels.length; row++)
+	{
+    	for (int col = 0; col < newPixels[row].length; col++)
+		{
+        	newPixels2[row][col] = newPixels[row][(col + shiftBy) % newPixels[row].length]
+    	}
+	}
+
+	k = 0;
+	for(int i = 0; i < width; i++)
+	{
+		for(int j = 0; j < height; j++)
+		{
+			pixels[k] = newPixels[i][j];
+			k++;
+		}
+	}
+
+	updatePixels();
+}
+
+void shiftVertical(int shiftBy)
+{
+	loadPixels();
+
+
+}
 
 void loadMinecraftTextures()
 {
